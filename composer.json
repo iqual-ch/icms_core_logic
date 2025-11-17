@@ -1,0 +1,12 @@
+{
+    "name": "iqual/icms_core_logic",
+    "description": "ICMS Core Logic - Provides deployment hooks and update functions for ICMS core functionality and propagates changes to child projects.",
+    "type": "drupal-module",
+    "license": [
+        "GPL-2.0-or-later"
+    ],
+    "require": {
+        "drupal/core": "^10 || ^11"
+    },
+    "version": "1.x-dev"
+}

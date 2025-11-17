@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Update hooks for ICMS core functionality.
+ */
+
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+
+/**
+ * Implements hook_install().
+ */
+function icms_core_logic_install() {
+  module_set_weight('icms_core_logic', 50);
+}
+
+// =============================================================================
+// UPDATE HOOKS - Examples
+// =============================================================================
+// Update hooks run before config import with reduced Drupal API.
+// Use for: module enablement, database schema changes.
+// Use TranslatableMarkup() instead of t().
+//
+// Example:
+// @code
+// function icms_core_logic_update_9001() {
+//   $config = \Drupal::configFactory()->getEditable('redirect.settings');
+//   if ($config->get('auto_redirect') !== TRUE) {
+//     $config->set('auto_redirect', TRUE);
+//     $config->save();
+//     return (string) new TranslatableMarkup('Enabled auto_redirect.');
+//   }
+//   return (string) new TranslatableMarkup('Auto_redirect was already enabled.');
+// }
+// @endcode

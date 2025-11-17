@@ -1,0 +1,5 @@
+name: 'ICMS Core Logic'
+type: module
+description: 'Provides deployment hooks and update functions for ICMS core functionality. Each bundle has its own logic module for bundle-specific updates.'
+package: Custom
+core_version_requirement: ^10 || ^11
