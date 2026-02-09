@@ -33,3 +33,15 @@ function icms_core_logic_install() {
 //   return (string) new TranslatableMarkup('Auto_redirect was already enabled.');
 // }
 // @endcode
+
+/**
+ * Disable the responsive_preview module.
+ */
+function icms_core_logic_update_9001() {
+  $module_handler = \Drupal::moduleHandler();
+  if ($module_handler->moduleExists('responsive_preview')) {
+    \Drupal::service('module_installer')->uninstall(['responsive_preview']);
+    return (string) new TranslatableMarkup('Disabled the responsive_preview module.');
+  }
+  return (string) new TranslatableMarkup('The responsive_preview module was not installed.');
+}
