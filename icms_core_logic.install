@@ -45,3 +45,13 @@ function icms_core_logic_update_9001() {
   }
   return (string) new TranslatableMarkup('The responsive_preview module was not installed.');
 }
+
+/**
+ * Clear simple_sitemap base_url setting.
+ */
+function icms_core_logic_update_9002() {
+  $config = \Drupal::configFactory()->getEditable('simple_sitemap.settings');
+  $config->set('base_url', '');
+  $config->save();
+  return (string) new TranslatableMarkup('The simple_sitemap base_url was already empty.');
+}
