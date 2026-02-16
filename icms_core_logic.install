@@ -6,6 +6,9 @@
  */
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 
 /**
  * Implements hook_install().
@@ -55,3 +58,99 @@ function icms_core_logic_update_9002() {
   $config->save();
   return (string) new TranslatableMarkup('The simple_sitemap base_url was already empty.');
 }
+
+/**
+ * Add fields to paragraph types.
+ */
+function icms_core_logic_update_9003() {
+
+  $fieldNames = [
+    'field_icms_buttons' => [
+      'label' => 'Buttons', 
+      'settings' => [
+        'handler' => 'default:paragraph',
+        'handler_settings' => [
+          'target_bundles' => ['icms_button_element'],
+          'negate' => 0,
+        ],
+      ],
+      'paragraphs' => [
+        'icms_layout_downloads',
+        'icms_layout_partnerships',
+        'icms_layout_testimonials',
+        'icms_layout_timeline',
+      ],
+    ],
+    
+    'field_icms_pretitle' => [
+      'label' => 'PreTitle', 
+      'settings' => [
+
+      ],
+      'paragraphs' => [
+        'icms_layout_tabs',
+      ],
+    ],
+
+    'field_icms_text' => [
+      'label' => 'Text', 
+      'settings' => [
+
+      ],
+      'paragraphs' => [
+        'icms_layout_tabs',
+        'icms_layout_testimonials',
+      ],
+    ],
+  ];
+
+  // Field order with weights for form display.
+  $fieldOrder = [
+    'field_icms_pretitle' => 0,
+    'field_icms_title' => 1,
+    'group_title_settings' => 2,
+    'field_icms_text' => 3,
+    'field_icms_media_elements' => 4,
+    'field_icms_buttons' => 5,
+  ];
+
+  $log = "";
+  foreach ($fieldNames as $fieldName => $fieldData) {
+    $fieldStorage = FieldStorageConfig::loadByName('paragraph', $fieldName);
+    foreach ($fieldData['paragraphs'] as $paragarphType) {
+      $field = FieldConfig::loadByName('paragraph', $paragarphType, $fieldName);
+      if (!$field) {
+        $field = FieldConfig::create([
+          'field_storage' => $fieldStorage,
+          'bundle' => $paragarphType,
+          'label' => $fieldData['label'],
+          'required' => FALSE,
+          'settings' => $fieldData['settings'],
+        ]);
+        $field->save();
+        $log .= 'Added field ' . $fieldName . ' to paragraph ' . $paragarphType . ". \n";
+      }
+
+      // Add field to form display with proper weight.
+      $formDisplay = EntityFormDisplay::load('paragraph.' . $paragarphType . '.default');
+      if ($formDisplay) {
+        $component = $formDisplay->getComponent($fieldName);
+        if (!$component) {
+          $weight = isset($fieldOrder[$fieldName]) ? $fieldOrder[$fieldName] : 10;
+          $formDisplay->setComponent($fieldName, [
+            'type' => $fieldStorage->getType() === 'entity_reference_revisions' ? 'paragraphs' : 'string_textfield',
+            'weight' => $weight,
+            'settings' => [],
+            'third_party_settings' => [],
+          ]);
+          $formDisplay->save();
+          $log .= 'Added ' . $fieldName . ' to form display for ' . $paragarphType . ' (weight: ' . $weight . "). \n";
+        }
+      }
+    }
+  }
+
+  return (string) new TranslatableMarkup($log ?: 'No changes were needed.');
+
+}
+
