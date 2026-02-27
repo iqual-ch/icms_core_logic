@@ -1,0 +1,7 @@
+services:
+  icms_core_logic.commands:
+    class: Drupal\icms_core_logic\Drush\Commands\IcmsCoreLogicCommands
+    arguments:
+      - '@file_system'
+    tags:
+      - { name: drush.command }

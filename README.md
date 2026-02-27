@@ -6,6 +6,29 @@ This module contains update hooks and cross-bundle logic for ICMS core functiona
 
 - Handle structural changes via `hook_update_N()`
 - Provide shared functionality needed across multiple bundles
+- Provide Drush commands for code generation and project setup
+
+## Drush Commands
+
+### Generate Project Translations Module
+
+Generate a dedicated module for project-specific translations:
+
+```bash
+ddev drush icms:generate-translations-module
+# or using alias
+ddev drush icms-gen-trans
+```
+
+This creates `modules/custom/icms_project_translations` with:
+- `translations/` directory for custom translation files (`.po` files)
+- `texts/` directory for text snippets and copy
+- Proper module structure with `.info.yml` file
+
+After generation, enable the module:
+```bash
+ddev drush en icms_project_translations
+```
 
 ## Hook Types
 

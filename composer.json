@@ -8,5 +8,10 @@
     "require": {
         "drupal/core": "^10 || ^11"
     },
+    "autoload": {
+        "psr-4": {
+            "Drupal\\icms_core_logic\\": "src/"
+        }
+    },
     "version": "1.x-dev"
 }
