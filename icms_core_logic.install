@@ -15,6 +15,12 @@ use Drupal\Core\Entity\Entity\EntityFormDisplay;
  */
 function icms_core_logic_install() {
   module_set_weight('icms_core_logic', 50);
+
+  // Attempt to install webform during module installation.
+  // Note: During site installation with --existing-config, this may be
+  // overwritten by config import. The icms_admin.webform_install_subscriber
+  // event subscriber will reinstall webforms after config import completes.
+  icms_admin_install_webform('webform.webform.contact', 'icms_core_logic');
 }
 
 // =============================================================================
@@ -66,7 +72,7 @@ function icms_core_logic_update_9003() {
 
   $fieldNames = [
     'field_icms_buttons' => [
-      'label' => 'Buttons', 
+      'label' => 'Buttons',
       'settings' => [
         'handler' => 'default:paragraph',
         'handler_settings' => [
@@ -81,9 +87,9 @@ function icms_core_logic_update_9003() {
         'icms_layout_timeline',
       ],
     ],
-    
+
     'field_icms_pretitle' => [
-      'label' => 'PreTitle', 
+      'label' => 'PreTitle',
       'settings' => [
 
       ],
@@ -93,7 +99,7 @@ function icms_core_logic_update_9003() {
     ],
 
     'field_icms_text' => [
-      'label' => 'Text', 
+      'label' => 'Text',
       'settings' => [
 
       ],
@@ -154,3 +160,17 @@ function icms_core_logic_update_9003() {
 
 }
 
+
+/**
+ * Install contact webform from config file.
+ */
+function icms_core_logic_update_9004() {
+  $success = icms_admin_install_webform('webform.webform.contact', 'icms_core_logic');
+
+  if ($success) {
+    return new TranslatableMarkup('Installed contact webform.');
+  }
+  else {
+    return new TranslatableMarkup('Failed to install contact webform. Check logs for details.');
+  }
+}
