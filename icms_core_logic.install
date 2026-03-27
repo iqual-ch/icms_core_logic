@@ -9,6 +9,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\user\Entity\Role;
 
 /**
  * Implements hook_install().
@@ -173,4 +174,56 @@ function icms_core_logic_update_9004() {
   else {
     return new TranslatableMarkup('Failed to install contact webform. Check logs for details.');
   }
+}
+
+/**
+ * Create the Webform Manager role.
+ */
+function icms_core_logic_update_9010() {
+  if (Role::load('webform_manager')) {
+    return (string) new TranslatableMarkup('The Webform Manager role already exists.');
+  }
+
+  if (!\Drupal::moduleHandler()->moduleExists('webform')) {
+    return (string) new TranslatableMarkup('Skipped creating Webform Manager role because the webform module is not installed.');
+  }
+
+  $role = Role::create([
+    'id' => 'webform_manager',
+    'label' => 'Webform Manager',
+    'weight' => -6,
+    'is_admin' => FALSE,
+  ]);
+
+  $permissions = [
+    'access any webform configuration',
+    'access own webform configuration',
+    'access webform help',
+    'access webform overview',
+    'access webform submission user',
+    'administer webform',
+    'administer webform element access',
+    'administer webform overview',
+    'administer webform submission',
+    'create webform',
+    'delete any webform',
+    'delete any webform submission',
+    'delete own webform',
+    'delete own webform submission',
+    'edit any webform',
+    'edit any webform submission',
+    'edit own webform',
+    'edit own webform submission',
+    'edit webform variants',
+    'view any webform submission',
+    'view own webform submission',
+  ];
+
+  foreach ($permissions as $permission) {
+    $role->grantPermission($permission);
+  }
+
+  $role->save();
+
+  return (string) new TranslatableMarkup('Created the Webform Manager role.');
 }
