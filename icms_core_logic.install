@@ -177,6 +177,51 @@ function icms_core_logic_update_9004() {
 }
 
 /**
+ * Set help text description on the table field (all languages).
+ */
+function icms_core_logic_update_9005() {
+  $field = FieldConfig::loadByName('paragraph', 'icms_layout_table', 'field_icms_table');
+  if (!$field) {
+    return (string) new TranslatableMarkup('Field field_icms_table not found.');
+  }
+
+  $description_en = '<p>Insert an icon within the table by typing a keyword that starts with a colon, for example: <code>:check</code> or <code>:cross</code>. Icon list: <a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer">https://lucide.dev/icons/</a></p>' . "\r\n" . '<p>You can also insert system emojis by right-clicking in the field and opening the emoji picker.</p>';
+
+  $field->setDescription($description_en);
+  $field->save();
+
+  // Set translated descriptions if locale module is available.
+  if (\Drupal::moduleHandler()->moduleExists('locale')) {
+    $translations = [
+      'de' => '<p>Fügen Sie innerhalb der Tabelle ein Icon ein, indem Sie ein Schlüsselwort eingeben, das mit einem Doppelpunkt beginnt, zum Beispiel: <code>:check</code> oder <code>:cross</code>. Icon-Liste: <a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer">https://lucide.dev/icons/</a></p> <p>Sie können auch System-Emojis einfügen, indem Sie im Feld mit der rechten Maustaste klicken und die Emoji-Auswahl öffnen.</p>',
+      'fr' => "<p>Insérez une icône dans le tableau en saisissant un mot-clé qui commence par deux-points, par exemple : <code>:check</code> ou <code>:cross</code>. Liste des icônes : <a href='https://lucide.dev/icons/' target='_blank' rel='noopener noreferrer'>https://lucide.dev/icons/</a></p> <p>Vous pouvez également insérer des emojis système en faisant un clic droit dans le champ puis en ouvrant le sélecteur d'emojis.</p>",
+      'it' => "<p>Inserisci un'icona all'interno della tabella digitando una parola chiave che inizia con i due punti, per esempio: <code>:check</code> oppure <code>:cross</code>. Elenco icone: <a href='https://lucide.dev/icons/' target='_blank' rel='noopener noreferrer'>https://lucide.dev/icons/</a></p> <p>Puoi anche inserire emoji di sistema facendo clic con il tasto destro nel campo e aprendo il selettore emoji.</p>",
+    ];
+
+    $label_translations = [
+      'de' => 'Tabelle',
+      'fr' => 'Tableau',
+      'it' => 'Tabella',
+    ];
+
+    $config_name = 'field.field.paragraph.icms_layout_table.field_icms_table';
+    foreach ($translations as $langcode => $description) {
+      $language_manager = \Drupal::languageManager();
+      if ($language_manager->getLanguage($langcode)) {
+        $config_translation = $language_manager->getLanguageConfigOverride($langcode, $config_name);
+        $config_translation->set('description', $description);
+        if (isset($label_translations[$langcode])) {
+          $config_translation->set('label', $label_translations[$langcode]);
+        }
+        $config_translation->save();
+      }
+    }
+  }
+
+  return (string) new TranslatableMarkup('Updated table field description in all languages.');
+}
+
+/**
  * Create the Webform Manager role.
  */
 function icms_core_logic_update_9010() {
@@ -226,4 +271,5 @@ function icms_core_logic_update_9010() {
   $role->save();
 
   return (string) new TranslatableMarkup('Created the Webform Manager role.');
+
 }
