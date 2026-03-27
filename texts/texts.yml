@@ -1,0 +1,245 @@
+checkboxes_radios_required:
+  context: webform_validation
+  default:
+    en: 'Select at least one option'
+    de: 'Wählen Sie mindestens eine Option aus'
+    fr: 'Sélectionnez au moins une option'
+    it: 'Seleziona almeno un''opzione'
+checkbox_required:
+  context: webform_validation
+  default:
+    en: 'You must check this box'
+    de: 'Sie müssen dieses Kästchen ankreuzen'
+    fr: 'Vous devez cocher cette case'
+    it: 'Devi selezionare questa casella'
+clear_filter:
+  context: listing
+  default:
+    en: Clear
+    de: Zurücksetzen
+    fr: Effacer
+    it: Cancella
+clear_filters:
+  context: listing
+  default:
+    en: 'Clear all filters'
+    de: 'Alle Filter zurücksetzen'
+    fr: 'Effacer tous les filtres'
+    it: 'Cancella tutti i filtri'
+close_button_aria_label:
+  context: lightbox
+  default:
+    en: 'Close lightbox'
+    de: 'Lightbox schließen'
+    fr: 'Fermer la visionneuse'
+    it: 'Chiudi lightbox'
+email:
+  context: webform_validation
+  default:
+    en: 'Invalid email.'
+    de: 'Ungültige E-Mail-Adresse.'
+    fr: 'Adresse e-mail invalide.'
+    it: 'E-mail non valida.'
+file_max_size:
+  context: webform_validation
+  default:
+    en: 'File too large. Max size:'
+    de: 'Datei zu groß. Maximale Größe:'
+    fr: 'Fichier trop volumineux. Taille maximale :'
+    it: 'File troppo grande. Dimensione massima:'
+hamburger_menu_aria_label:
+  context: mobile_main_menu
+  default:
+    en: 'Hamburger Menu'
+    de: 'Hamburger-Menü'
+    fr: 'Menu hamburger'
+    it: 'Menu hamburger'
+link_label:
+  context: teaser_card
+  default:
+    en: 'Read more'
+    de: 'Mehr lesen'
+    fr: 'En savoir plus'
+    it: 'Leggi di più'
+loading:
+  context: listing
+  default:
+    en: Loading...
+    de: Laden...
+    fr: Chargement...
+    it: Caricamento...
+loading_spinner_aria_label:
+  context: lightbox
+  default:
+    en: 'Loading media...'
+    de: 'Medien werden geladen...'
+    fr: 'Chargement des médias...'
+    it: 'Caricamento dei media...'
+load_more:
+  context: listing
+  default:
+    en: 'Load more'
+    de: 'Mehr laden'
+    fr: 'Charger plus'
+    it: 'Carica altro'
+media_error_message:
+  context: carousel
+  default:
+    en: 'Unable to display this media'
+    de: 'Dieses Medium kann nicht angezeigt werden'
+    fr: 'Impossible d''afficher ce média'
+    it: 'Impossibile visualizzare questo contenuto multimediale'
+media_unsupported_format:
+  context: carousel
+  default:
+    en: 'Unsupported format'
+    de: 'Nicht unterstütztes Format'
+    fr: 'Format non pris en charge'
+    it: 'Formato non supportato'
+nav_aria_label_main:
+  context: main_menu
+  default:
+    en: 'Main navigation'
+    de: 'Hauptnavigation'
+    fr: 'Navigation principale'
+    it: 'Navigazione principale'
+nav_aria_label_meta:
+  context: meta_navigation
+  default:
+    en: 'Meta navigation menu'
+    de: 'Meta-Navigationsmenü'
+    fr: 'Menu de navigation méta'
+    it: 'Menu di navigazione meta'
+no_results:
+  context: listing
+  default:
+    en: 'Currently there is no content available.'
+    de: 'Derzeit sind keine Inhalte verfügbar.'
+    fr: 'Aucun contenu n''est actuellement disponible.'
+    it: 'Attualmente non sono disponibili contenuti.'
+profile_picture_of:
+  context: bundle
+  default:
+    en: 'Profile picture of'
+    de: 'Profilbild von'
+    fr: 'Photo de profil de'
+    it: 'Foto profilo di'
+published_on:
+  context: page
+  default:
+    en: 'Published on'
+    de: 'Veröffentlicht am'
+    fr: 'Publié le'
+    it: 'Pubblicato il'
+required:
+  context: webform_validation
+  default:
+    en: Required
+    de: Erforderlich
+    fr: Obligatoire
+    it: Obbligatorio
+required_field_error:
+  context: webform
+  default:
+    en: 'This field is required.'
+    de: 'Dieses Feld ist erforderlich.'
+    fr: 'Ce champ est obligatoire.'
+    it: 'Questo campo è obbligatorio.'
+result:
+  context: listing
+  default:
+    en: result
+    de: Ergebnis
+    fr: résultat
+    it: risultato
+results:
+  context: listing
+  default:
+    en: results
+    de: Ergebnisse
+    fr: résultats
+    it: risultati
+search_field_aria_label:
+  context: search
+  default:
+    en: 'Search input'
+    de: Suchfeld
+    fr: 'Champ de recherche'
+    it: 'Campo di ricerca'
+search_field_label:
+  context: search
+  default:
+    en: Suchbegriff
+    de: Suchbegriff
+    fr: 'Terme de recherche'
+    it: 'Termine di ricerca'
+search_field_placeholder:
+  context: search
+  default:
+    en: 'Suchbegriff eingeben'
+    de: 'Suchbegriff eingeben'
+    fr: 'Saisissez un terme de recherche'
+    it: 'Inserisci un termine di ricerca'
+showing:
+  context: listing
+  default:
+    en: result
+    de: Ergebnis
+    fr: résultat
+    it: risultato
+submenu_toggle:
+  context: mobile_main_menu
+  default:
+    en: 'Toggle submenu'
+    de: 'Untermenü umschalten'
+    fr: 'Afficher ou masquer le sous-menu'
+    it: 'Mostra o nascondi il sottomenu'
+submission_error:
+  context: webform
+  default:
+    en: 'There was an error submitting the webform. Please try again.'
+    de: 'Beim Senden des Webformulars ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'
+    fr: 'Une erreur est survenue lors de l''envoi du formulaire. Veuillez réessayer.'
+    it: 'Si è verificato un errore durante l''invio del modulo web. Riprova.'
+submission_success:
+  context: webform
+  default:
+    en: 'Thank you for submitting the webform.'
+    de: 'Vielen Dank für das Absenden des Webformulars.'
+    fr: 'Merci d''avoir envoyé le formulaire.'
+    it: 'Grazie per aver inviato il modulo web.'
+submission_validation_incomplete:
+  context: webform
+  default:
+    en: 'Please fill in all required fields.'
+    de: 'Bitte füllen Sie alle Pflichtfelder aus.'
+    fr: 'Veuillez remplir tous les champs obligatoires.'
+    it: 'Compila tutti i campi obbligatori.'
+submit:
+  context: webform
+  default:
+    en: Submit
+    de: Senden
+    fr: Envoyer
+    it: Invia
+submit_error:
+  context: webform
+  default:
+    en: 'The form could not be submitted. Please check your entries and try again.'
+    de: 'Das Formular konnte nicht gesendet werden. Bitte überprüfen Sie Ihre Eingaben und versuchen Sie es erneut.'
+    fr: 'Le formulaire n''a pas pu être envoyé. Veuillez vérifier vos saisies et réessayer.'
+    it: 'Impossibile inviare il modulo. Controlla i dati inseriti e riprova.'
+submit_success:
+  context: webform
+  default:
+    en: 'Your form has been submitted successfully.'
+    de: 'Ihr Formular wurde erfolgreich gesendet.'
+    fr: 'Votre formulaire a été envoyé avec succès.'
+    it: 'Il tuo modulo è stato inviato con successo.'
+default_link_label:
+  context: listing
+  default:
+    en: 'More'
+    de: 'Mehr'
+    fr: 'Plus'
+    it: 'Di più'

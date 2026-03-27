@@ -10,6 +10,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\user\Entity\Role;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Implements hook_install().
@@ -17,11 +18,55 @@ use Drupal\user\Entity\Role;
 function icms_core_logic_install() {
   module_set_weight('icms_core_logic', 50);
 
+  // Import default ICMS core texts on module installation.
+  icms_core_logic_import_default_texts();
+
   // Attempt to install webform during module installation.
   // Note: During site installation with --existing-config, this may be
   // overwritten by config import. The icms_admin.webform_install_subscriber
   // event subscriber will reinstall webforms after config import completes.
   icms_admin_install_webform('webform.webform.contact', 'icms_core_logic');
+}
+
+/**
+ * Imports default text entities from the package-local texts file.
+ */
+function icms_core_logic_import_default_texts(): void {
+  $module_handler = \Drupal::moduleHandler();
+
+  if (!$module_handler->moduleExists('texts') || !$module_handler->moduleExists('texts_sync')) {
+    \Drupal::logger('icms_core_logic')->notice('Skipped texts import during install because texts/texts_sync is not enabled.');
+    return;
+  }
+
+  $module_path = \Drupal::service('extension.list.module')->getPath('icms_core_logic');
+  $texts_file = DRUPAL_ROOT . '/' . $module_path . '/texts/texts.yml';
+
+  if (!is_readable($texts_file)) {
+    \Drupal::logger('icms_core_logic')->warning('Skipped texts import during install because file was not found or not readable: @path', ['@path' => $texts_file]);
+    return;
+  }
+
+  try {
+    $data = Yaml::parseFile($texts_file);
+    if (!is_array($data) || empty($data)) {
+      \Drupal::logger('icms_core_logic')->warning('Skipped texts import during install because YAML was empty or invalid: @path', ['@path' => $texts_file]);
+      return;
+    }
+
+    /** @var \Drupal\texts_sync\TextsSyncService $texts_sync */
+    $texts_sync = \Drupal::service('texts_sync.service');
+    $stats = $texts_sync->import($data, NULL, TRUE);
+
+    \Drupal::logger('icms_core_logic')->notice('Imported default texts during install. Created: @created, Updated: @updated, Skipped: @skipped.', [
+      '@created' => (int) ($stats['created'] ?? 0),
+      '@updated' => (int) ($stats['updated'] ?? 0),
+      '@skipped' => (int) ($stats['skipped'] ?? 0),
+    ]);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('icms_core_logic')->error('Failed to import default texts during install: @message', ['@message' => $e->getMessage()]);
+  }
 }
 
 // =============================================================================
