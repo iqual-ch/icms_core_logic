@@ -9,6 +9,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\user\Entity\Role;
 use Symfony\Component\Yaml\Yaml;
 
@@ -222,51 +223,6 @@ function icms_core_logic_update_9004() {
 }
 
 /**
- * Set help text description on the table field (all languages).
- */
-function icms_core_logic_update_9005() {
-  $field = FieldConfig::loadByName('paragraph', 'icms_layout_table', 'field_icms_table');
-  if (!$field) {
-    return (string) new TranslatableMarkup('Field field_icms_table not found.');
-  }
-
-  $description_en = '<p>Insert an icon within the table by typing a keyword that starts with a colon, for example: <code>:check</code> or <code>:cross</code>. Icon list: <a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer">https://lucide.dev/icons/</a></p>' . "\r\n" . '<p>You can also insert system emojis by right-clicking in the field and opening the emoji picker.</p>';
-
-  $field->setDescription($description_en);
-  $field->save();
-
-  // Set translated descriptions if locale module is available.
-  if (\Drupal::moduleHandler()->moduleExists('locale')) {
-    $translations = [
-      'de' => '<p>Fügen Sie innerhalb der Tabelle ein Icon ein, indem Sie ein Schlüsselwort eingeben, das mit einem Doppelpunkt beginnt, zum Beispiel: <code>:check</code> oder <code>:cross</code>. Icon-Liste: <a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer">https://lucide.dev/icons/</a></p> <p>Sie können auch System-Emojis einfügen, indem Sie im Feld mit der rechten Maustaste klicken und die Emoji-Auswahl öffnen.</p>',
-      'fr' => "<p>Insérez une icône dans le tableau en saisissant un mot-clé qui commence par deux-points, par exemple : <code>:check</code> ou <code>:cross</code>. Liste des icônes : <a href='https://lucide.dev/icons/' target='_blank' rel='noopener noreferrer'>https://lucide.dev/icons/</a></p> <p>Vous pouvez également insérer des emojis système en faisant un clic droit dans le champ puis en ouvrant le sélecteur d'emojis.</p>",
-      'it' => "<p>Inserisci un'icona all'interno della tabella digitando una parola chiave che inizia con i due punti, per esempio: <code>:check</code> oppure <code>:cross</code>. Elenco icone: <a href='https://lucide.dev/icons/' target='_blank' rel='noopener noreferrer'>https://lucide.dev/icons/</a></p> <p>Puoi anche inserire emoji di sistema facendo clic con il tasto destro nel campo e aprendo il selettore emoji.</p>",
-    ];
-
-    $label_translations = [
-      'de' => 'Tabelle',
-      'fr' => 'Tableau',
-      'it' => 'Tabella',
-    ];
-
-    $config_name = 'field.field.paragraph.icms_layout_table.field_icms_table';
-    foreach ($translations as $langcode => $description) {
-      $language_manager = \Drupal::languageManager();
-      if ($language_manager->getLanguage($langcode)) {
-        $config_translation = $language_manager->getLanguageConfigOverride($langcode, $config_name);
-        $config_translation->set('description', $description);
-        if (isset($label_translations[$langcode])) {
-          $config_translation->set('label', $label_translations[$langcode]);
-        }
-        $config_translation->save();
-      }
-    }
-  }
-
-  return (string) new TranslatableMarkup('Updated table field description in all languages.');
-}
-
-/**
  * Create the Webform Manager role.
  */
 function icms_core_logic_update_9010() {
@@ -317,4 +273,580 @@ function icms_core_logic_update_9010() {
 
   return (string) new TranslatableMarkup('Created the Webform Manager role.');
 
+}
+
+/**
+ * Set help text description on the table field (all languages).
+ */
+function icms_core_logic_update_9011() {
+  $field = FieldConfig::loadByName('paragraph', 'icms_layout_table', 'field_icms_table');
+  if (!$field) {
+    return (string) new TranslatableMarkup('Field field_icms_table not found.');
+  }
+
+  $description_en = '<p>Insert an icon within the table by typing a keyword that starts with a colon, for example: <code>:check</code> or <code>:cross</code>. Icon list: <a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer">https://lucide.dev/icons/</a></p>' . "\r\n" . '<p>You can also insert system emojis by right-clicking in the field and opening the emoji picker.</p>';
+
+  $field->setDescription($description_en);
+  $field->save();
+
+  // Set translated descriptions if locale module is available.
+  if (\Drupal::moduleHandler()->moduleExists('locale')) {
+    $translations = [
+      'de' => '<p>Fügen Sie innerhalb der Tabelle ein Icon ein, indem Sie ein Schlüsselwort eingeben, das mit einem Doppelpunkt beginnt, zum Beispiel: <code>:check</code> oder <code>:cross</code>. Icon-Liste: <a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer">https://lucide.dev/icons/</a></p> <p>Sie können auch System-Emojis einfügen, indem Sie im Feld mit der rechten Maustaste klicken und die Emoji-Auswahl öffnen.</p>',
+      'fr' => "<p>Insérez une icône dans le tableau en saisissant un mot-clé qui commence par deux-points, par exemple : <code>:check</code> ou <code>:cross</code>. Liste des icônes : <a href='https://lucide.dev/icons/' target='_blank' rel='noopener noreferrer'>https://lucide.dev/icons/</a></p> <p>Vous pouvez également insérer des emojis système en faisant un clic droit dans le champ puis en ouvrant le sélecteur d'emojis.</p>",
+      'it' => "<p>Inserisci un'icona all'interno della tabella digitando una parola chiave che inizia con i due punti, per esempio: <code>:check</code> oppure <code>:cross</code>. Elenco icone: <a href='https://lucide.dev/icons/' target='_blank' rel='noopener noreferrer'>https://lucide.dev/icons/</a></p> <p>Puoi anche inserire emoji di sistema facendo clic con il tasto destro nel campo e aprendo il selettore emoji.</p>",
+    ];
+
+    $label_translations = [
+      'de' => 'Tabelle',
+      'fr' => 'Tableau',
+      'it' => 'Tabella',
+    ];
+
+    $config_name = 'field.field.paragraph.icms_layout_table.field_icms_table';
+    foreach ($translations as $langcode => $description) {
+      $language_manager = \Drupal::languageManager();
+      if ($language_manager->getLanguage($langcode)) {
+        $config_translation = $language_manager->getLanguageConfigOverride($langcode, $config_name);
+        $config_translation->set('description', $description);
+        if (isset($label_translations[$langcode])) {
+          $config_translation->set('label', $label_translations[$langcode]);
+        }
+        $config_translation->save();
+      }
+    }
+  }
+
+  return (string) new TranslatableMarkup('Updated table field description in all languages.');
+}
+
+/**
+ * Convert Blokk.li options.
+ */
+function icms_core_logic_update_9012() {
+  $conversions = [
+    // icms_layout_text: textWidth -> width
+    [
+      'bundle' => 'icms_layout_text',
+      'old_key' => 'textWidth',
+      'new_key' => 'width',
+      'value_map' => ['full' => 'wide'],
+    ],
+    // icms_layout_text_media: textWidth -> width
+    [
+      'bundle' => 'icms_layout_text_media',
+      'old_key' => 'textWidth',
+      'new_key' => 'width',
+      'value_map' => ['full' => 'wide'],
+    ],
+    // icms_layout_text_media: reverseColumns -> alignHorizontalReduced
+    [
+      'bundle' => 'icms_layout_text_media',
+      'old_key' => 'reverseColumns',
+      'new_key' => 'alignHorizontalReduced',
+      'value_map' => [1 => 'right', 0 => 'left'],
+    ],
+    // icms_layout_iframe: textWidth -> width
+    [
+      'bundle' => 'icms_layout_iframe',
+      'old_key' => 'textWidth',
+      'new_key' => 'width',
+      'value_map' => ['full' => 'wide'],
+    ],
+    // icms_layout_hero_image: reverseColumns -> alignHorizontalFull
+    [
+      'bundle' => 'icms_layout_hero_image',
+      'old_key' => 'reverseColumns',
+      'new_key' => 'alignHorizontalFull',
+      'value_map' => [1 => 'right', 0 => 'left'],
+    ],
+    // icms_timeline_element: reverseColumns -> alignHorizontalReduced
+    [
+      'bundle' => 'icms_timeline_element',
+      'old_key' => 'reverseColumns',
+      'new_key' => 'alignHorizontalReduced',
+      'value_map' => [1 => 'right', 0 => 'left'],
+    ],
+  ];
+
+  // Group conversions by bundle so each paragraph is loaded/saved once.
+  $by_bundle = [];
+  foreach ($conversions as $conversion) {
+    $by_bundle[$conversion['bundle']][] = $conversion;
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  $count = 0;
+  foreach ($by_bundle as $bundle => $bundle_conversions) {
+    $ids = $storage->getQuery()
+      ->condition('type', $bundle)
+      ->accessCheck(FALSE)
+      ->execute();
+
+    foreach ($storage->loadMultiple($ids) as $paragraph) {
+      $behavior = $paragraph->getAllBehaviorSettings();
+      $blokkli_data = $behavior['paragraphs_blokkli_data'] ?? [];
+      $changed = FALSE;
+
+      foreach ($bundle_conversions as $conversion) {
+        if (isset($blokkli_data[$conversion['old_key']])) {
+          if (!array_key_exists($conversion['new_key'], $blokkli_data)) {
+            $old_value = $blokkli_data[$conversion['old_key']];
+            $blokkli_data[$conversion['new_key']] = $conversion['value_map'][$old_value] ?? $old_value;
+          }
+          unset($blokkli_data[$conversion['old_key']]);
+          $changed = TRUE;
+        }
+      }
+
+      if ($changed) {
+        $paragraph->setBehaviorSettings('paragraphs_blokkli_data', $blokkli_data);
+        $paragraph->save();
+        $count++;
+      }
+    }
+  }
+
+  return (string) new TranslatableMarkup('Converted @count Blokk.li options.', ['@count' => $count]);
+}
+
+/**
+ * Convert field_icms_link_style to buttonStyle option.
+ */
+function icms_core_logic_update_9013() {
+  $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  $ids = $storage->getQuery()
+    ->condition('type', 'icms_button_element')
+    ->accessCheck(FALSE)
+    ->execute();
+
+  if (empty($ids)) {
+    return (string) new TranslatableMarkup('No icms_button_element paragraphs found.');
+  }
+
+  $count = 0;
+  foreach ($storage->loadMultiple($ids) as $paragraph) {
+    if (!$paragraph->hasField('field_icms_link_style')) {
+      continue;
+    }
+
+    $value = $paragraph->get('field_icms_link_style')->value;
+
+    if ($value) {
+      $blokkli_data = $paragraph->getAllBehaviorSettings()['paragraphs_blokkli_data'] ?? [];
+      $blokkli_data['buttonStyle'] = $value;
+      $paragraph->setBehaviorSettings('paragraphs_blokkli_data', $blokkli_data);
+      $paragraph->save();
+      $count++;
+    }
+  }
+
+  return (string) new TranslatableMarkup('Converted @count field_icms_link_style values to buttonStyle Blokk.li option.', ['@count' => $count]);
+}
+
+/**
+ * Convert Paragraph types.
+ */
+function icms_core_logic_update_9014() {
+  $log = [];
+  $log[] = _icms_core_logic_convert_layout_flip_teasers();
+  $tab_mapping = [];
+  $log[] = _icms_core_logic_convert_tab_elements($tab_mapping);
+  $log[] = _icms_core_logic_convert_layout_tabs($tab_mapping);
+  $log = implode(' ', $log);
+  return $log ?: (string) new TranslatableMarkup('No paragraph conversions were needed.');
+}
+
+/**
+ * Convert icms_layout_flip_teasers to icms_layout_teasers.
+ */
+function _icms_core_logic_convert_layout_flip_teasers(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  $ids = $storage->getQuery()
+    ->condition('type', 'icms_layout_flip_teasers')
+    ->accessCheck(FALSE)
+    ->execute();
+
+  if (empty($ids)) {
+    return (string) new TranslatableMarkup('No icms_layout_flip_teasers paragraphs found.');
+  }
+
+  $count = 0;
+  foreach ($storage->loadMultiple($ids) as $old_paragraph) {
+    $parent = $old_paragraph->getParentEntity();
+    $parent_field_name = $old_paragraph->get('parent_field_name')->value;
+
+    if (!$parent) {
+      \Drupal::logger('icms_core_logic')->notice('Skipping orphaned icms_layout_flip_teasers @id (no parent entity).', ['@id' => $old_paragraph->id()]);
+      continue;
+    }
+
+    $new_paragraph = Paragraph::create([
+      'type' => 'icms_layout_teasers',
+      'langcode' => $old_paragraph->get('langcode')->value,
+      'field_icms_pretitle' => $old_paragraph->get('field_icms_pretitle')->getValue(),
+      'field_icms_title' => $old_paragraph->get('field_icms_title')->getValue(),
+      'field_icms_title_weight' => $old_paragraph->get('field_icms_title_weight')->getValue(),
+      'field_icms_title_style' => $old_paragraph->get('field_icms_title_style')->getValue(),
+      'field_icms_subtitle' => $old_paragraph->get('field_icms_subtitle')->getValue(),
+      'field_icms_text' => $old_paragraph->get('field_icms_text')->getValue(),
+      'field_icms_content_entities' => $old_paragraph->get('field_icms_content_entities')->getValue(),
+    ]);
+
+    // Set teaserVariant blokkli option.
+    $blokkli_data = $old_paragraph->getAllBehaviorSettings()['paragraphs_blokkli_data'] ?? [];
+    $blokkli_data['teaserVariant'] = 'flipTeaser';
+    $new_paragraph->setBehaviorSettings('paragraphs_blokkli_data', $blokkli_data);
+    $new_paragraph->save();
+
+    // Copy translations to new paragraph.
+    $translations = $old_paragraph->getTranslationLanguages(FALSE);
+    foreach ($translations as $langcode => $language) {
+      $translated = $old_paragraph->getTranslation($langcode);
+      $new_paragraph->addTranslation($langcode, [
+        'field_icms_pretitle' => $translated->get('field_icms_pretitle')->getValue(),
+        'field_icms_title' => $translated->get('field_icms_title')->getValue(),
+        'field_icms_title_weight' => $translated->get('field_icms_title_weight')->getValue(),
+        'field_icms_title_style' => $translated->get('field_icms_title_style')->getValue(),
+        'field_icms_subtitle' => $translated->get('field_icms_subtitle')->getValue(),
+        'field_icms_text' => $translated->get('field_icms_text')->getValue(),
+        'field_icms_content_entities' => $translated->get('field_icms_content_entities')->getValue(),
+      ]);
+    }
+    if (!empty($translations)) {
+      $new_paragraph->save();
+    }
+
+    // Update parent reference.
+    $items = $parent->get($parent_field_name)->getValue();
+    foreach ($items as $delta => $item) {
+      if ($item['target_id'] == $old_paragraph->id()) {
+        $items[$delta]['target_id'] = $new_paragraph->id();
+        $items[$delta]['target_revision_id'] = $new_paragraph->getRevisionId();
+      }
+    }
+    $parent->set($parent_field_name, $items);
+    $parent->save();
+
+    $old_paragraph->delete();
+    $count++;
+  }
+
+  return (string) new TranslatableMarkup('Converted @count icms_layout_flip_teasers to icms_layout_teasers.', ['@count' => $count]);
+}
+
+/**
+ * Convert icms_tab_element → icms_collapsible_element.
+ *
+ * Does not touch the parent (layout_tabs) — _icms_core_logic_convert_layout_tabs handles rewiring.
+ * Populates $mapping with old_tab_element_id => new collapsible_element ref.
+ */
+function _icms_core_logic_convert_tab_elements(array &$mapping): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  $ids = $storage->getQuery()
+    ->condition('type', 'icms_tab_element')
+    ->accessCheck(FALSE)
+    ->execute();
+
+  if (empty($ids)) {
+    return (string) new TranslatableMarkup('No icms_tab_element paragraphs found.');
+  }
+
+  $count = 0;
+  foreach ($storage->loadMultiple($ids) as $old_paragraph) {
+    // Create layout_text_media if media exists, otherwise layout_text.
+    $media_values = $old_paragraph->get('field_icms_media_elements')->getValue();
+    $fields = [
+      'field_icms_pretitle' => $old_paragraph->get('field_icms_pretitle')->getValue(),
+      'field_icms_title' => $old_paragraph->get('field_icms_title')->getValue(),
+      'field_icms_title_style' => $old_paragraph->get('field_icms_title_style')->getValue(),
+      'field_icms_subtitle' => $old_paragraph->get('field_icms_subtitle')->getValue(),
+      'field_icms_text' => $old_paragraph->get('field_icms_text')->getValue(),
+      'field_icms_buttons' => $old_paragraph->get('field_icms_buttons')->getValue(),
+    ];
+
+    $fields['langcode'] = $old_paragraph->get('langcode')->value;
+
+    if (!empty($media_values)) {
+      $fields['type'] = 'icms_layout_text_media';
+      $fields['field_icms_media_elements'] = $media_values;
+    }
+    else {
+      $fields['type'] = 'icms_layout_text';
+    }
+
+    $child = Paragraph::create($fields);
+    $child->save();
+
+    // Copy translations to child paragraph.
+    $translations = $old_paragraph->getTranslationLanguages(FALSE);
+    foreach ($translations as $langcode => $language) {
+      $translated = $old_paragraph->getTranslation($langcode);
+      $child_translation = [
+        'field_icms_pretitle' => $translated->get('field_icms_pretitle')->getValue(),
+        'field_icms_title' => $translated->get('field_icms_title')->getValue(),
+        'field_icms_title_style' => $translated->get('field_icms_title_style')->getValue(),
+        'field_icms_subtitle' => $translated->get('field_icms_subtitle')->getValue(),
+        'field_icms_text' => $translated->get('field_icms_text')->getValue(),
+        'field_icms_buttons' => $translated->get('field_icms_buttons')->getValue(),
+      ];
+      if ($child->bundle() === 'icms_layout_text_media') {
+        $child_translation['field_icms_media_elements'] = $translated->get('field_icms_media_elements')->getValue();
+      }
+      $child->addTranslation($langcode, $child_translation);
+    }
+    if (!empty($translations)) {
+      $child->save();
+    }
+
+    // Create the new collapsible_element.
+    $new_paragraph = Paragraph::create([
+      'type' => 'icms_collapsible_element',
+      'langcode' => $old_paragraph->get('langcode')->value,
+      'field_icms_collapsible_title' => $old_paragraph->get('field_icms_tab_title')->getValue(),
+      'field_icms_collapsible_layouts' => [
+        [
+          'target_id' => $child->id(),
+          'target_revision_id' => $child->getRevisionId(),
+        ],
+      ],
+    ]);
+    $new_paragraph->save();
+
+    // Copy translations to collapsible_element.
+    foreach ($translations as $langcode => $language) {
+      $translated = $old_paragraph->getTranslation($langcode);
+      $new_paragraph->addTranslation($langcode, [
+        'field_icms_collapsible_title' => $translated->get('field_icms_tab_title')->getValue(),
+      ]);
+    }
+    if (!empty($translations)) {
+      $new_paragraph->save();
+    }
+
+    // Store mapping for _icms_core_logic_convert_layout_tabs to use.
+    $mapping[$old_paragraph->id()] = [
+      'target_id' => $new_paragraph->id(),
+      'target_revision_id' => $new_paragraph->getRevisionId(),
+    ];
+    $count++;
+  }
+
+  return (string) new TranslatableMarkup('Converted @count icms_tab_element to icms_collapsible_element.', ['@count' => $count]);
+}
+
+/**
+ * Convert icms_layout_tabs → icms_layout_collapsible.
+ *
+ * Uses $tab_mapping from _icms_core_logic_convert_tab_elements to rewire tab_elements → collapsible_elements.
+ * Also cleans up old tab_elements.
+ */
+function _icms_core_logic_convert_layout_tabs(array $tab_mapping): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  $ids = $storage->getQuery()
+    ->condition('type', 'icms_layout_tabs')
+    ->accessCheck(FALSE)
+    ->execute();
+
+  if (empty($ids)) {
+    return (string) new TranslatableMarkup('No icms_layout_tabs paragraphs found.');
+  }
+
+  $count = 0;
+  foreach ($storage->loadMultiple($ids) as $old_paragraph) {
+    $parent = $old_paragraph->getParentEntity();
+    $parent_field_name = $old_paragraph->get('parent_field_name')->value;
+
+    if (!$parent) {
+      \Drupal::logger('icms_core_logic')->notice('Skipping orphaned icms_layout_tabs @id (no parent entity).', ['@id' => $old_paragraph->id()]);
+      continue;
+    }
+
+    // Map old tab_element refs to new collapsible_element refs.
+    $collapsible_elements = [];
+    $old_tab_ids = [];
+    foreach ($old_paragraph->get('field_icms_tab_elements')->getValue() as $ref) {
+      $old_id = $ref['target_id'];
+      $old_tab_ids[] = $old_id;
+      if (isset($tab_mapping[$old_id])) {
+        $collapsible_elements[] = $tab_mapping[$old_id];
+      }
+    }
+
+    // Log if any referenced tab elements had no mapping (stale references).
+    if (count($collapsible_elements) !== count($old_tab_ids)) {
+      \Drupal::logger('icms_core_logic')->warning('icms_layout_tabs @id: @dropped stale tab element references dropped.', [
+        '@id' => $old_paragraph->id(),
+        '@dropped' => count($old_tab_ids) - count($collapsible_elements),
+      ]);
+    }
+
+    $new_paragraph = Paragraph::create([
+      'type' => 'icms_layout_collapsible',
+      'langcode' => $old_paragraph->get('langcode')->value,
+      'field_icms_pretitle' => $old_paragraph->get('field_icms_pretitle')->getValue(),
+      'field_icms_title' => $old_paragraph->get('field_icms_title')->getValue(),
+      'field_icms_title_weight' => $old_paragraph->get('field_icms_title_weight')->getValue(),
+      'field_icms_title_style' => $old_paragraph->get('field_icms_title_style')->getValue(),
+      'field_icms_text' => $old_paragraph->get('field_icms_text')->getValue(),
+      'field_icms_collapsible_elements' => $collapsible_elements,
+    ]);
+
+    // Set collapsibleVariant blokkli option.
+    $blokkli_data = $old_paragraph->getAllBehaviorSettings()['paragraphs_blokkli_data'] ?? [];
+    $blokkli_data['collapsibleVariant'] = 'tabs';
+    $new_paragraph->setBehaviorSettings('paragraphs_blokkli_data', $blokkli_data);
+    $new_paragraph->save();
+
+    // Copy translations to new paragraph.
+    $translations = $old_paragraph->getTranslationLanguages(FALSE);
+    foreach ($translations as $langcode => $language) {
+      $translated = $old_paragraph->getTranslation($langcode);
+      $new_paragraph->addTranslation($langcode, [
+        'field_icms_pretitle' => $translated->get('field_icms_pretitle')->getValue(),
+        'field_icms_title' => $translated->get('field_icms_title')->getValue(),
+        'field_icms_title_weight' => $translated->get('field_icms_title_weight')->getValue(),
+        'field_icms_title_style' => $translated->get('field_icms_title_style')->getValue(),
+        'field_icms_text' => $translated->get('field_icms_text')->getValue(),
+      ]);
+    }
+    if (!empty($translations)) {
+      $new_paragraph->save();
+    }
+
+    // Update parent reference.
+    $items = $parent->get($parent_field_name)->getValue();
+    foreach ($items as $delta => $item) {
+      if ($item['target_id'] == $old_paragraph->id()) {
+        $items[$delta]['target_id'] = $new_paragraph->id();
+        $items[$delta]['target_revision_id'] = $new_paragraph->getRevisionId();
+      }
+    }
+    $parent->set($parent_field_name, $items);
+    $parent->save();
+
+    // Clean up old tab_elements and layout_tabs.
+    foreach ($storage->loadMultiple($old_tab_ids) as $old_tab) {
+      $old_tab->delete();
+    }
+    $old_paragraph->delete();
+    $count++;
+  }
+
+  return (string) new TranslatableMarkup('Converted @count icms_layout_tabs to icms_layout_collapsible.', ['@count' => $count]);
+}
+
+/**
+ * Delete obsolete paragraph types and associated config.
+ */
+function icms_core_logic_update_9015() {
+  $config_factory = \Drupal::configFactory();
+  $log = '';
+
+  // Delete any remaining paragraphs of obsolete types
+  $obsolete_types = ['icms_layout_tabs', 'icms_tab_element', 'icms_layout_flip_teasers'];
+  $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  foreach ($obsolete_types as $type) {
+    $ids = $storage->getQuery()
+      ->condition('type', $type)
+      ->accessCheck(FALSE)
+      ->execute();
+    if (!empty($ids)) {
+      $storage->delete($storage->loadMultiple($ids));
+      $log .= (string) new TranslatableMarkup('Deleted @count remaining @type paragraphs. ', ['@count' => count($ids), '@type' => $type]);
+    }
+  }
+
+  $configs = [
+    // icms_layout_tabs.
+    'field.field.paragraph.icms_layout_tabs.field_icms_text',
+    'field.field.paragraph.icms_layout_tabs.field_icms_tab_elements',
+    'field.field.paragraph.icms_layout_tabs.field_icms_pretitle',
+    'field.field.paragraph.icms_layout_tabs.field_icms_title',
+    'field.field.paragraph.icms_layout_tabs.field_icms_title_style',
+    'field.field.paragraph.icms_layout_tabs.field_icms_title_weight',
+    'core.entity_form_display.paragraph.icms_layout_tabs.default',
+    'core.entity_view_display.paragraph.icms_layout_tabs.default',
+    'language.content_settings.paragraph.icms_layout_tabs',
+    'paragraphs.paragraphs_type.icms_layout_tabs',
+
+    // icms_tab_element.
+    'field.field.paragraph.icms_tab_element.field_icms_buttons',
+    'field.field.paragraph.icms_tab_element.field_icms_pretitle',
+    'field.field.paragraph.icms_tab_element.field_icms_subtitle',
+    'field.field.paragraph.icms_tab_element.field_icms_tab_title',
+    'field.field.paragraph.icms_tab_element.field_icms_text',
+    'field.field.paragraph.icms_tab_element.field_icms_title',
+    'field.field.paragraph.icms_tab_element.field_icms_title_style',
+    'field.field.paragraph.icms_tab_element.field_icms_media_elements',
+    'core.entity_form_display.paragraph.icms_tab_element.default',
+    'core.entity_view_display.paragraph.icms_tab_element.default',
+    'language.content_settings.paragraph.icms_tab_element',
+    'paragraphs.paragraphs_type.icms_tab_element',
+
+    // icms_layout_flip_teasers.
+    'field.field.paragraph.icms_layout_flip_teasers.field_icms_content_entities',
+    'field.field.paragraph.icms_layout_flip_teasers.field_icms_pretitle',
+    'field.field.paragraph.icms_layout_flip_teasers.field_icms_subtitle',
+    'field.field.paragraph.icms_layout_flip_teasers.field_icms_text',
+    'field.field.paragraph.icms_layout_flip_teasers.field_icms_title',
+    'field.field.paragraph.icms_layout_flip_teasers.field_icms_title_style',
+    'field.field.paragraph.icms_layout_flip_teasers.field_icms_title_weight',
+    'core.entity_form_display.paragraph.icms_layout_flip_teasers.default',
+    'core.entity_view_display.paragraph.icms_layout_flip_teasers.default',
+    'language.content_settings.paragraph.icms_layout_flip_teasers',
+    'paragraphs.paragraphs_type.icms_layout_flip_teasers',
+  ];
+
+  $count = 0;
+  foreach ($configs as $config_name) {
+    $config = $config_factory->getEditable($config_name);
+    if (!$config->isNew()) {
+      $config->delete();
+      $count++;
+    }
+  }
+  $log .= (string) new TranslatableMarkup('Deleted @count config objects.', ['@count' => $count]);
+
+  // Delete field storages only used by obsolete bundles.
+  foreach (['field_icms_tab_title', 'field_icms_tab_elements'] as $field_name) {
+    $field_storage = FieldStorageConfig::loadByName('paragraph', $field_name);
+    if ($field_storage && empty($field_storage->getBundles())) {
+      $field_storage->delete();
+      $log .= ' ' . (string) new TranslatableMarkup('Deleted @field field storage.', ['@field' => $field_name]);
+    }
+  }
+
+  return $log;
+}
+
+/**
+ * Explicitly set Layout Call to Action's callToActionVariant based on media.
+ */
+function icms_core_logic_update_9016() {
+  $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  $ids = $storage->getQuery()
+    ->condition('type', 'icms_layout_call_to_action')
+    ->accessCheck(FALSE)
+    ->execute();
+
+  if (empty($ids)) {
+    return (string) new TranslatableMarkup('No icms_layout_call_to_action paragraphs found.');
+  }
+
+  $count = 0;
+  foreach ($storage->loadMultiple($ids) as $paragraph) {
+    $has_media = !$paragraph->get('field_icms_media_element')->isEmpty();
+    $variant = $has_media ? 'feature' : 'default';
+
+    $blokkli_data = $paragraph->getAllBehaviorSettings()['paragraphs_blokkli_data'] ?? [];
+    if (!array_key_exists('callToActionVariant', $blokkli_data)) {
+      $blokkli_data['callToActionVariant'] = $variant;
+      $paragraph->setBehaviorSettings('paragraphs_blokkli_data', $blokkli_data);
+      $paragraph->save();
+      $count++;
+    }
+  }
+
+  return (string) new TranslatableMarkup('Set callToActionVariant on @count paragraphs.', ['@count' => $count]);
 }
