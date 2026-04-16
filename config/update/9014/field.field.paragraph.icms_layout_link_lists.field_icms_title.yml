@@ -1,0 +1,24 @@
+uuid: c7f9d4fa-3b7d-4c0b-809a-3acef75d0d19
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_title
+    - paragraphs.paragraphs_type.icms_layout_link_lists
+  module:
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_layout_link_lists.field_icms_title
+field_name: field_icms_title
+entity_type: paragraph
+bundle: icms_layout_link_lists
+label: Title
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

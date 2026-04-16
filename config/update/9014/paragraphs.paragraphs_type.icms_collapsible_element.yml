@@ -1,0 +1,14 @@
+uuid: 62b516b5-963b-45e1-a63a-d7e56889f329
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs_blokkli
+id: icms_collapsible_element
+label: ~Collapsible
+icon_uuid: null
+icon_default: null
+description: ''
+behavior_plugins:
+  paragraphs_blokkli_data:
+    enabled: true

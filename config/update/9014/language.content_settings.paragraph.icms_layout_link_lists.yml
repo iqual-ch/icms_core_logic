@@ -1,0 +1,18 @@
+uuid: 10cf6fd6-bd83-49ab-8a64-f12a3d8f87ef
+langcode: en
+status: true
+dependencies:
+  config:
+    - paragraphs.paragraphs_type.icms_layout_link_lists
+  module:
+    - content_translation
+third_party_settings:
+  content_translation:
+    enabled: true
+    bundle_settings:
+      untranslatable_fields_hide: '1'
+id: paragraph.icms_layout_link_lists
+target_entity_type_id: paragraph
+target_bundle: icms_layout_link_lists
+default_langcode: site_default
+language_alterable: false

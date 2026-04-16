@@ -1,0 +1,14 @@
+uuid: b483baed-838f-40bf-9844-a5b05abc25cd
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs_blokkli
+id: icms_link_list_element
+label: '~Link List'
+icon_uuid: null
+icon_default: null
+description: ''
+behavior_plugins:
+  paragraphs_blokkli_data:
+    enabled: true

@@ -1,0 +1,24 @@
+uuid: 04890c35-887c-43a4-856e-b499b9b181be
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_subtitle
+    - paragraphs.paragraphs_type.icms_layout_link_lists
+  module:
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_layout_link_lists.field_icms_subtitle
+field_name: field_icms_subtitle
+entity_type: paragraph
+bundle: icms_layout_link_lists
+label: SubTitle
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

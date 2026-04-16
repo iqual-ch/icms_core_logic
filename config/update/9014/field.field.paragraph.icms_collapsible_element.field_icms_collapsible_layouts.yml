@@ -1,0 +1,178 @@
+uuid: 5475f2da-aee3-4a56-afd5-24ec7addcb3f
+langcode: de
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_collapsible_layouts
+    - paragraphs.paragraphs_type.icms_collapsible_element
+    - paragraphs.paragraphs_type.icms_layout_2_col_text_elements
+    - paragraphs.paragraphs_type.icms_layout_cards
+    - paragraphs.paragraphs_type.icms_layout_downloads
+    - paragraphs.paragraphs_type.icms_layout_gallery
+    - paragraphs.paragraphs_type.icms_layout_iframe
+    - paragraphs.paragraphs_type.icms_layout_link_lists
+    - paragraphs.paragraphs_type.icms_layout_media
+    - paragraphs.paragraphs_type.icms_layout_partnerships
+    - paragraphs.paragraphs_type.icms_layout_table
+    - paragraphs.paragraphs_type.icms_layout_testimonial
+    - paragraphs.paragraphs_type.icms_layout_text
+    - paragraphs.paragraphs_type.icms_layout_text_image_intro
+    - paragraphs.paragraphs_type.icms_layout_text_media
+    - paragraphs.paragraphs_type.icms_layout_textcol_iconlist
+  module:
+    - entity_reference_revisions
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_collapsible_element.field_icms_collapsible_layouts
+field_name: field_icms_collapsible_layouts
+entity_type: paragraph
+bundle: icms_collapsible_element
+label: Layouts
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:paragraph'
+  handler_settings:
+    target_bundles:
+      icms_layout_2_col_text_elements: icms_layout_2_col_text_elements
+      icms_layout_cards: icms_layout_cards
+      icms_layout_downloads: icms_layout_downloads
+      icms_layout_gallery: icms_layout_gallery
+      icms_layout_iframe: icms_layout_iframe
+      icms_layout_link_lists: icms_layout_link_lists
+      icms_layout_media: icms_layout_media
+      icms_layout_partnerships: icms_layout_partnerships
+      icms_layout_table: icms_layout_table
+      icms_layout_testimonial: icms_layout_testimonial
+      icms_layout_text: icms_layout_text
+      icms_layout_textcol_iconlist: icms_layout_textcol_iconlist
+      icms_layout_text_image_intro: icms_layout_text_image_intro
+      icms_layout_text_media: icms_layout_text_media
+    negate: 0
+    target_bundles_drag_drop:
+      blokkli_fragment:
+        weight: 41
+        enabled: false
+      from_library:
+        weight: 42
+        enabled: false
+      icms_2_col_text_element:
+        weight: 43
+        enabled: false
+      icms_button_element:
+        weight: 44
+        enabled: false
+      icms_card_element:
+        weight: 45
+        enabled: false
+      icms_collapsible_element:
+        weight: 46
+        enabled: false
+      icms_faq_element:
+        weight: 47
+        enabled: false
+      icms_icon_text_element:
+        weight: 48
+        enabled: false
+      icms_layout_2_col_text_elements:
+        weight: 49
+        enabled: true
+      icms_layout_call_to_action:
+        weight: 50
+        enabled: false
+      icms_layout_cards:
+        weight: 51
+        enabled: true
+      icms_layout_collapsible:
+        weight: 52
+        enabled: false
+      icms_layout_contact:
+        weight: 53
+        enabled: false
+      icms_layout_downloads:
+        weight: 54
+        enabled: true
+      icms_layout_faq:
+        weight: 55
+        enabled: false
+      icms_layout_flip_teasers:
+        weight: 56
+        enabled: false
+      icms_layout_gallery:
+        weight: 57
+        enabled: true
+      icms_layout_hero_image:
+        weight: 58
+        enabled: false
+      icms_layout_iframe:
+        weight: 59
+        enabled: true
+      icms_layout_link_lists:
+        weight: 60
+        enabled: true
+      icms_layout_media:
+        weight: 61
+        enabled: true
+      icms_layout_partnerships:
+        weight: 62
+        enabled: true
+      icms_layout_table:
+        weight: 63
+        enabled: true
+      icms_layout_tabs:
+        weight: 64
+        enabled: false
+      icms_layout_team:
+        weight: 65
+        enabled: false
+      icms_layout_teasers:
+        weight: 66
+        enabled: false
+      icms_layout_testimonial:
+        weight: 67
+        enabled: true
+      icms_layout_testimonials:
+        weight: 68
+        enabled: false
+      icms_layout_text:
+        weight: 69
+        enabled: true
+      icms_layout_text_image_intro:
+        weight: 71
+        enabled: true
+      icms_layout_text_media:
+        weight: 72
+        enabled: true
+      icms_layout_textcol_iconlist:
+        weight: 70
+        enabled: true
+      icms_layout_timeline:
+        weight: 73
+        enabled: false
+      icms_link_list_element:
+        weight: 74
+        enabled: false
+      icms_logo_element:
+        weight: 75
+        enabled: false
+      icms_partnership_element:
+        weight: 76
+        enabled: false
+      icms_tab_element:
+        weight: 77
+        enabled: false
+      icms_team_element:
+        weight: 78
+        enabled: false
+      icms_testimonial_element:
+        weight: 79
+        enabled: false
+      icms_timeline_element:
+        weight: 80
+        enabled: false
+field_type: entity_reference_revisions

@@ -1,0 +1,27 @@
+uuid: bb89d8da-8ef5-4d91-9bc7-9d5e296f56f2
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_title_style
+    - paragraphs.paragraphs_type.icms_layout_collapsible
+  module:
+    - options
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_layout_collapsible.field_icms_title_style
+field_name: field_icms_title_style
+entity_type: paragraph
+bundle: icms_layout_collapsible
+label: 'Title style'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: heading-2
+default_value_callback: ''
+settings: {  }
+field_type: list_string

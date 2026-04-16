@@ -1,0 +1,405 @@
+uuid: f0ee3a5a-0b60-4723-90d2-74f0eb24d8d0
+langcode: en
+status: true
+dependencies: {  }
+name: graphql
+label: GraphQL
+endpoint: /graphql
+debug_flag: 1
+schema: core_composable
+caching: true
+batching: true
+disable_introspection: false
+query_depth: null
+query_complexity: null
+schema_configuration:
+  core_composable:
+    extensions:
+      breadcrumb: breadcrumb
+      entity_query: entity_query
+      environment_indicator: environment_indicator
+      focal_point: focal_point
+      formatted_date: formatted_date
+      image: image
+      language_schema: language_schema
+      language_switch_links: language_switch_links
+      local_tasks: local_tasks
+      masquerade: masquerade
+      media: media
+      menu: menu
+      messenger: messenger
+      metatag: metatag
+      metatags_schema_org: metatags_schema_org
+      paragraphs_blokkli_comment: paragraphs_blokkli_comment
+      paragraphs_blokkli_edit: paragraphs_blokkli_edit
+      paragraphs_blokkli_library: paragraphs_blokkli_library
+      paragraphs_blokkli_search: paragraphs_blokkli_search
+      paragraphs_blokkli_transform: paragraphs_blokkli_transform
+      routing: routing
+      search_api_query: search_api_query
+      taxonomy: taxonomy
+      telephone: telephone
+      texts: texts
+      translatable_config_pages: translatable_config_pages
+      user: user
+      user_login: user_login
+      webform: webform
+    generate_value_fields: 1
+    entity_base_fields:
+      fields:
+        accessCheck: accessCheck
+        entityBundle: entityBundle
+        entityTypeId: entityTypeId
+        isNew: isNew
+        label: label
+        langcode: langcode
+        uuid: uuid
+    enabled_entity_types:
+      comment: 1
+      configurable_language: 1
+      file: 1
+      media: 1
+      menu: 1
+      menu_link_content: 1
+      node: 1
+      paragraph: 1
+      paragraphs_blokkli_edit_state: 1
+      paragraphs_library_item: 1
+      paragraphs_type: 1
+      redirect: 1
+      taxonomy_term: 1
+      texts: 1
+      translatable_config_pages: 1
+      user: 1
+      webform: 1
+      workflow: 1
+    fields:
+      comment:
+        changed: changed
+        comment_body: comment_body
+        created: created
+        field_resolved: field_resolved
+        field_target_uuids: field_target_uuids
+        uid: uid
+      configurable_language:
+        status: status
+      file:
+        uri: uri
+      media:
+        bundle: bundle
+        changed: changed
+        created: created
+        field_caption: field_caption
+        field_media_audio_file: field_media_audio_file
+        field_media_document: field_media_document
+        field_media_image: field_media_image
+        field_media_oembed_video: field_media_oembed_video
+        field_media_svg: field_media_svg
+        field_media_video_file: field_media_video_file
+        field_thumbnail_custom: field_thumbnail_custom
+        mid: mid
+        name: name
+        path: path
+        status: status
+        thumbnail: thumbnail
+      menu: {  }
+      menu_link_content: {  }
+      node:
+        body: body
+        changed: changed
+        created: created
+        default_langcode: default_langcode
+        field_icms_image: field_icms_image
+        field_icms_paragraphs: field_icms_paragraphs
+        field_icms_teaser_image: field_icms_teaser_image
+        field_icms_teaser_link_label: field_icms_teaser_link_label
+        field_icms_teaser_pretitle: field_icms_teaser_pretitle
+        field_icms_teaser_text: field_icms_teaser_text
+        field_icms_teaser_title: field_icms_teaser_title
+        field_icms_topics: field_icms_topics
+        menu_link: menu_link
+        metatag: metatag
+        nid: nid
+        path: path
+        promote: promote
+        publish_on: publish_on
+        revision_uid: revision_uid
+        status: status
+        sticky: sticky
+        title: title
+        type: type
+        uid: uid
+        unpublish_on: unpublish_on
+        vid: vid
+      paragraph:
+        behavior_settings: behavior_settings
+        created: created
+        default_langcode: default_langcode
+        field_blokkli_fragment_name: field_blokkli_fragment_name
+        field_icms_2_col_text_elements: field_icms_2_col_text_elements
+        field_icms_answer: field_icms_answer
+        field_icms_buttons: field_icms_buttons
+        field_icms_card_elements: field_icms_card_elements
+        field_icms_collapsible_elements: field_icms_collapsible_elements
+        field_icms_collapsible_layouts: field_icms_collapsible_layouts
+        field_icms_collapsible_title: field_icms_collapsible_title
+        field_icms_content_entities: field_icms_content_entities
+        field_icms_documents: field_icms_documents
+        field_icms_email: field_icms_email
+        field_icms_embed_code: field_icms_embed_code
+        field_icms_faq_elements: field_icms_faq_elements
+        field_icms_first_name: field_icms_first_name
+        field_icms_icon: field_icms_icon
+        field_icms_icon_text_elements: field_icms_icon_text_elements
+        field_icms_iframe_height: field_icms_iframe_height
+        field_icms_last_name: field_icms_last_name
+        field_icms_link: field_icms_link
+        field_icms_link_label: field_icms_link_label
+        field_icms_link_list_elements: field_icms_link_list_elements
+        field_icms_link_params: field_icms_link_params
+        field_icms_link_target_blank: field_icms_link_target_blank
+        field_icms_link_title: field_icms_link_title
+        field_icms_links: field_icms_links
+        field_icms_logo: field_icms_logo
+        field_icms_logo_elements: field_icms_logo_elements
+        field_icms_media_element: field_icms_media_element
+        field_icms_media_elements: field_icms_media_elements
+        field_icms_partnership_elements: field_icms_partnership_elements
+        field_icms_partnership_title: field_icms_partnership_title
+        field_icms_phone: field_icms_phone
+        field_icms_position: field_icms_position
+        field_icms_pretitle: field_icms_pretitle
+        field_icms_question: field_icms_question
+        field_icms_signature: field_icms_signature
+        field_icms_subtitle: field_icms_subtitle
+        field_icms_tab_elements: field_icms_tab_elements
+        field_icms_tab_title: field_icms_tab_title
+        field_icms_table: field_icms_table
+        field_icms_team_elements: field_icms_team_elements
+        field_icms_testimonial_elements: field_icms_testimonial_elements
+        field_icms_text: field_icms_text
+        field_icms_text_plain: field_icms_text_plain
+        field_icms_text_rows: field_icms_text_rows
+        field_icms_timeline_elements: field_icms_timeline_elements
+        field_icms_title: field_icms_title
+        field_icms_title_style: field_icms_title_style
+        field_icms_title_weight: field_icms_title_weight
+        field_icms_webform: field_icms_webform
+        field_reusable_paragraph: field_reusable_paragraph
+        parent_field_name: parent_field_name
+        parent_id: parent_id
+        parent_type: parent_type
+        status: status
+        type: type
+      paragraphs_blokkli_edit_state:
+        changed: changed
+        created: created
+        current_index: current_index
+        host_entity_type: host_entity_type
+        host_entity_uuid: host_entity_uuid
+        mutations: mutations
+        preview_hash: preview_hash
+        status: status
+        uid: uid
+      paragraphs_library_item:
+        changed: changed
+        created: created
+        paragraphs: paragraphs
+        status: status
+      paragraphs_type:
+        behavior_plugins: behavior_plugins
+        description: description
+        icon_default: icon_default
+        icon_uuid: icon_uuid
+        status: status
+      redirect:
+        language: language
+        rid: rid
+        status_code: status_code
+        type: type
+      taxonomy_term:
+        changed: changed
+        default_langcode: default_langcode
+        description: description
+        metatag: metatag
+        name: name
+        parent: parent
+        status: status
+        tid: tid
+        vid: vid
+        weight: weight
+      texts:
+        key: key
+        plural: plural
+        translation: translation
+      translatable_config_pages:
+        field_icms_company_address: field_icms_company_address
+        field_icms_company_description: field_icms_company_description
+        field_icms_company_logo: field_icms_company_logo
+        field_icms_company_logo_alt: field_icms_company_logo_alt
+        field_icms_company_name: field_icms_company_name
+        field_icms_contact_buttons: field_icms_contact_buttons
+        field_icms_email_address: field_icms_email_address
+        field_icms_meta_links: field_icms_meta_links
+        field_icms_phone_number: field_icms_phone_number
+        field_icms_social_media_links: field_icms_social_media_links
+      user:
+        access: access
+        changed: changed
+        created: created
+        mail: mail
+        name: name
+        roles: roles
+        status: status
+        uid: uid
+        user_picture: user_picture
+      webform: {  }
+      workflow:
+        dependencies: dependencies
+        status: status
+        third_party_settings: third_party_settings
+        type: type
+        type_settings: type_settings
+    bundles:
+      comment:
+        blokkli_node:
+          enabled: true
+      file:
+        file:
+          enabled: true
+      media:
+        audio:
+          enabled: true
+        document:
+          enabled: true
+        icon:
+          enabled: true
+        image:
+          enabled: true
+        remote_video:
+          enabled: true
+        video:
+          enabled: true
+      menu_link_content:
+        account:
+          enabled: true
+        admin:
+          enabled: true
+        footer:
+          enabled: true
+        footer-meta:
+          enabled: true
+        main:
+          enabled: true
+        meta:
+          enabled: true
+        tools:
+          enabled: true
+      node:
+        icms_page:
+          enabled: true
+      paragraph:
+        blokkli_fragment:
+          enabled: true
+        from_library:
+          enabled: true
+        icms_2_col_text_element:
+          enabled: true
+        icms_button_element:
+          enabled: true
+        icms_card_element:
+          enabled: true
+        icms_collapsible_element:
+          enabled: true
+        icms_faq_element:
+          enabled: true
+        icms_icon_text_element:
+          enabled: true
+        icms_layout_2_col_text_elements:
+          enabled: true
+        icms_layout_call_to_action:
+          enabled: true
+        icms_layout_cards:
+          enabled: true
+        icms_layout_collapsible:
+          enabled: true
+        icms_layout_contact:
+          enabled: true
+        icms_layout_downloads:
+          enabled: true
+        icms_layout_faq:
+          enabled: true
+        icms_layout_flip_teasers:
+          enabled: true
+        icms_layout_gallery:
+          enabled: true
+        icms_layout_hero_image:
+          enabled: true
+        icms_layout_iframe:
+          enabled: true
+        icms_layout_link_lists:
+          enabled: true
+        icms_layout_media:
+          enabled: true
+        icms_layout_partnerships:
+          enabled: true
+        icms_layout_table:
+          enabled: true
+        icms_layout_tabs:
+          enabled: true
+        icms_layout_team:
+          enabled: true
+        icms_layout_teasers:
+          enabled: true
+        icms_layout_testimonial:
+          enabled: true
+        icms_layout_testimonials:
+          enabled: true
+        icms_layout_text:
+          enabled: true
+        icms_layout_textcol_iconlist:
+          enabled: true
+        icms_layout_text_image_intro:
+          enabled: true
+        icms_layout_text_media:
+          enabled: true
+        icms_layout_timeline:
+          enabled: true
+        icms_link_list_element:
+          enabled: true
+        icms_logo_element:
+          enabled: true
+        icms_partnership_element:
+          enabled: true
+        icms_tab_element:
+          enabled: true
+        icms_team_element:
+          enabled: true
+        icms_testimonial_element:
+          enabled: true
+        icms_timeline_element:
+          enabled: true
+      paragraphs_blokkli_edit_state:
+        paragraphs_blokkli_edit_state:
+          enabled: true
+      paragraphs_library_item:
+        paragraphs_library_item:
+          enabled: true
+      redirect:
+        redirect:
+          enabled: true
+      taxonomy_term:
+        icms_topics:
+          enabled: true
+      texts:
+        texts:
+          enabled: true
+      translatable_config_pages:
+        global:
+          enabled: true
+      user:
+        user:
+          enabled: true
+persisted_queries_settings:
+  dynamic_cached_persisted_query:
+    weight: 0

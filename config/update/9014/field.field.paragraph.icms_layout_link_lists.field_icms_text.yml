@@ -1,0 +1,28 @@
+uuid: 84a4c047-8041-485a-8ee1-4e18342380c5
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_text
+    - filter.format.icms_basic
+    - paragraphs.paragraphs_type.icms_layout_link_lists
+  module:
+    - text
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_layout_link_lists.field_icms_text
+field_name: field_icms_text
+entity_type: paragraph
+bundle: icms_layout_link_lists
+label: Text
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats:
+    - icms_basic
+field_type: text_long

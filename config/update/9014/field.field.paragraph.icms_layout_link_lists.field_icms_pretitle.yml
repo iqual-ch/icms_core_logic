@@ -1,0 +1,24 @@
+uuid: 42bd0754-1499-4266-8f8d-24c2c79dff8d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_pretitle
+    - paragraphs.paragraphs_type.icms_layout_link_lists
+  module:
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_layout_link_lists.field_icms_pretitle
+field_name: field_icms_pretitle
+entity_type: paragraph
+bundle: icms_layout_link_lists
+label: PreTitle
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

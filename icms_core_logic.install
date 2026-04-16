@@ -142,6 +142,48 @@ function icms_core_logic_update_9003() {
       ],
       'paragraphs' => [
         'icms_layout_tabs',
+        'icms_layout_call_to_action'
+      ],
+    ],
+
+    'field_icms_title' => [
+      'label' => 'Title',
+      'settings' => [
+
+      ],
+      'paragraphs' => [
+        'icms_layout_call_to_action'
+      ],
+    ],
+
+    'field_icms_title_weight' => [
+      'label' => 'Title weight',
+      'settings' => [
+
+      ],
+      'paragraphs' => [
+        'icms_layout_call_to_action'
+      ],
+    ],
+
+    'field_icms_title_style' => [
+      'label' => 'Title style',
+      'settings' => [
+
+      ],
+      'paragraphs' => [
+        'icms_layout_call_to_action'
+      ],
+    ],
+
+    'field_icms_subtitle' => [
+      'label' => 'SubTitle',
+      'settings' => [
+
+      ],
+      'paragraphs' => [
+        'icms_layout_call_to_action',
+        'icms_layout_downloads',
       ],
     ],
 
@@ -187,6 +229,15 @@ function icms_core_logic_update_9003() {
       // Add field to form display with proper weight.
       $formDisplay = EntityFormDisplay::load('paragraph.' . $paragarphType . '.default');
       if ($formDisplay) {
+        if ($fieldName === 'field_icms_subtitle') {
+          if ($formDisplay->getComponent($fieldName)) {
+            $formDisplay->removeComponent($fieldName);
+            $formDisplay->save();
+            $log .= 'Removed ' . $fieldName . ' from form display for ' . $paragarphType . ". \n";
+          }
+          continue;
+        }
+
         $component = $formDisplay->getComponent($fieldName);
         if (!$component) {
           $weight = isset($fieldOrder[$fieldName]) ? $fieldOrder[$fieldName] : 10;
@@ -449,12 +500,123 @@ function icms_core_logic_update_9013() {
  */
 function icms_core_logic_update_9014() {
   $log = [];
+  $log[] = _icms_core_logic_install_conversion_paragraph_bundles();
   $log[] = _icms_core_logic_convert_layout_flip_teasers();
   $tab_mapping = [];
   $log[] = _icms_core_logic_convert_tab_elements($tab_mapping);
   $log[] = _icms_core_logic_convert_layout_tabs($tab_mapping);
   $log = implode(' ', $log);
   return $log ?: (string) new TranslatableMarkup('No paragraph conversions were needed.');
+}
+
+/**
+ * Install paragraph bundle config required by paragraph conversions.
+ */
+function _icms_core_logic_install_conversion_paragraph_bundles(): string {
+  $config_entities = [
+    'field_storage_config' => [
+      'field.storage.paragraph.field_icms_collapsible_title',
+      'field.storage.paragraph.field_icms_collapsible_layouts',
+      'field.storage.paragraph.field_icms_collapsible_elements',
+      'field.storage.paragraph.field_icms_link_list_elements',
+      'field.storage.paragraph.field_icms_links',
+    ],
+    'paragraphs_type' => [
+      'paragraphs.paragraphs_type.icms_collapsible_element',
+      'paragraphs.paragraphs_type.icms_layout_collapsible',
+      'paragraphs.paragraphs_type.icms_link_list_element',
+      'paragraphs.paragraphs_type.icms_layout_link_lists',
+    ],
+    'field_config' => [
+      'field.field.paragraph.icms_collapsible_element.field_icms_collapsible_title',
+      'field.field.paragraph.icms_collapsible_element.field_icms_collapsible_layouts',
+      'field.field.paragraph.icms_layout_collapsible.field_icms_pretitle',
+      'field.field.paragraph.icms_layout_collapsible.field_icms_title',
+      'field.field.paragraph.icms_layout_collapsible.field_icms_title_weight',
+      'field.field.paragraph.icms_layout_collapsible.field_icms_title_style',
+      'field.field.paragraph.icms_layout_collapsible.field_icms_subtitle',
+      'field.field.paragraph.icms_layout_collapsible.field_icms_text',
+      'field.field.paragraph.icms_layout_collapsible.field_icms_collapsible_elements',
+      'field.field.paragraph.icms_link_list_element.field_icms_title',
+      'field.field.paragraph.icms_link_list_element.field_icms_text',
+      'field.field.paragraph.icms_link_list_element.field_icms_links',
+      'field.field.paragraph.icms_layout_link_lists.field_icms_pretitle',
+      'field.field.paragraph.icms_layout_link_lists.field_icms_title',
+      'field.field.paragraph.icms_layout_link_lists.field_icms_title_weight',
+      'field.field.paragraph.icms_layout_link_lists.field_icms_title_style',
+      'field.field.paragraph.icms_layout_link_lists.field_icms_subtitle',
+      'field.field.paragraph.icms_layout_link_lists.field_icms_text',
+      'field.field.paragraph.icms_layout_link_lists.field_icms_link_list_elements',
+    ],
+    'entity_form_display' => [
+      'core.entity_form_display.paragraph.icms_collapsible_element.default',
+      'core.entity_form_display.paragraph.icms_layout_collapsible.default',
+      'core.entity_form_display.paragraph.icms_link_list_element.default',
+      'core.entity_form_display.paragraph.icms_layout_link_lists.default',
+    ],
+    'language_content_settings' => [
+      'language.content_settings.paragraph.icms_collapsible_element',
+      'language.content_settings.paragraph.icms_layout_collapsible',
+      'language.content_settings.paragraph.icms_link_list_element',
+      'language.content_settings.paragraph.icms_layout_link_lists',
+    ],
+    'graphql_servers' => [
+      'graphql.graphql_servers.graphql',
+    ],
+  ];
+
+  $created = 0;
+  foreach ($config_entities as $entity_type_id => $config_names) {
+    foreach ($config_names as $config_name) {
+      $created += (int) _icms_core_logic_import_config_entity($config_name, $entity_type_id);
+    }
+  }
+
+  if ($created > 0) {
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
+    \Drupal::service('config.factory')->reset('graphql.graphql_servers.graphql');
+  }
+
+  return (string) new TranslatableMarkup('Installed @count config entities required for paragraph conversions.', ['@count' => $created]);
+}
+
+/**
+ * Install a missing config entity from module-bundled update YAML.
+ */
+function _icms_core_logic_import_config_entity(string $config_name, string $entity_type_id): bool {
+  $active_storage = \Drupal::service('config.storage');
+  if ($active_storage->exists($config_name)) {
+    return FALSE;
+  }
+
+  $data = _icms_core_logic_read_exported_config($config_name);
+  if (!$data) {
+    \Drupal::logger('icms_core_logic')->warning('Skipped installing missing config entity @config because its bundled update YAML file could not be read.', ['@config' => $config_name]);
+    return FALSE;
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage($entity_type_id);
+  $entity = $storage->createFromStorageRecord($data);
+  $entity->save();
+
+  return TRUE;
+}
+
+/**
+ * Read a config entity from module-bundled update YAML.
+ */
+function _icms_core_logic_read_exported_config(string $config_name): ?array {
+  $module_path = \Drupal::service('extension.list.module')->getPath('icms_core_logic');
+  $config_path = DRUPAL_ROOT . '/' . $module_path . '/config/update/9014/' . $config_name . '.yml';
+
+  if (!is_readable($config_path)) {
+    return NULL;
+  }
+
+  $data = Yaml::parseFile($config_path);
+  return is_array($data) ? $data : NULL;
 }
 
 /**

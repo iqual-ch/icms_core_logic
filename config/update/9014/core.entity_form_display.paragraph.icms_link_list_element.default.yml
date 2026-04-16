@@ -1,0 +1,54 @@
+uuid: 25a7ad41-9eaf-4b41-a8c7-0ba3336b6f4d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.icms_link_list_element.field_icms_links
+    - field.field.paragraph.icms_link_list_element.field_icms_text
+    - field.field.paragraph.icms_link_list_element.field_icms_title
+    - paragraphs.paragraphs_type.icms_link_list_element
+  module:
+    - link
+    - maxlength
+    - text
+id: paragraph.icms_link_list_element.default
+targetEntityType: paragraph
+bundle: icms_link_list_element
+mode: default
+content:
+  field_icms_links:
+    type: link_default
+    weight: 1
+    region: content
+    settings:
+      placeholder_url: ''
+      placeholder_title: ''
+    third_party_settings: {  }
+  field_icms_text:
+    type: text_textarea
+    weight: 2
+    region: content
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+  field_icms_title:
+    type: string_textarea
+    weight: 0
+    region: content
+    settings:
+      rows: 2
+      placeholder: ''
+    third_party_settings:
+      maxlength:
+        maxlength_js: null
+        maxlength_js_label: 'Content limited to @limit characters, remaining: <strong>@remaining</strong>'
+        maxlength_js_enforce: false
+  translation:
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  status: true

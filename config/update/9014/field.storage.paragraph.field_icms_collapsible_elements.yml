@@ -1,0 +1,20 @@
+uuid: ba4cd5e8-16a0-41ee-a774-493af409ad91
+langcode: en
+status: true
+dependencies:
+  module:
+    - entity_reference_revisions
+    - paragraphs
+id: paragraph.field_icms_collapsible_elements
+field_name: field_icms_collapsible_elements
+entity_type: paragraph
+type: entity_reference_revisions
+settings:
+  target_type: paragraph
+module: entity_reference_revisions
+locked: false
+cardinality: -1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

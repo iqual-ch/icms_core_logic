@@ -1,0 +1,91 @@
+uuid: 9b98335d-779a-479b-894a-54ef71aa8372
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.icms_layout_collapsible.field_icms_collapsible_elements
+    - field.field.paragraph.icms_layout_collapsible.field_icms_pretitle
+    - field.field.paragraph.icms_layout_collapsible.field_icms_subtitle
+    - field.field.paragraph.icms_layout_collapsible.field_icms_text
+    - field.field.paragraph.icms_layout_collapsible.field_icms_title
+    - field.field.paragraph.icms_layout_collapsible.field_icms_title_style
+    - field.field.paragraph.icms_layout_collapsible.field_icms_title_weight
+    - paragraphs.paragraphs_type.icms_layout_collapsible
+  module:
+    - maxlength
+    - paragraphs
+    - text
+id: paragraph.icms_layout_collapsible.default
+targetEntityType: paragraph
+bundle: icms_layout_collapsible
+mode: default
+content:
+  field_icms_collapsible_elements:
+    type: paragraphs
+    weight: 5
+    region: content
+    settings:
+      title: 'Collapsible element'
+      title_plural: 'Collapsible elements'
+      edit_mode: open
+      closed_mode: summary
+      autocollapse: none
+      closed_mode_threshold: 0
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: icms_collapsible_element
+      features:
+        add_above: '0'
+        collapse_edit_all: collapse_edit_all
+        convert: '0'
+        duplicate: duplicate
+    third_party_settings: {  }
+  field_icms_pretitle:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_icms_text:
+    type: text_textarea
+    weight: 4
+    region: content
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+  field_icms_title:
+    type: string_textarea
+    weight: 1
+    region: content
+    settings:
+      rows: 2
+      placeholder: ''
+    third_party_settings:
+      maxlength:
+        maxlength_js: null
+        maxlength_js_label: 'Content limited to @limit characters, remaining: <strong>@remaining</strong>'
+        maxlength_js_enforce: false
+  field_icms_title_style:
+    type: options_select
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_icms_title_weight:
+    type: options_select
+    weight: 2
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  translation:
+    weight: 6
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  field_icms_subtitle: true
+  status: true

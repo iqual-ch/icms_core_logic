@@ -1,0 +1,19 @@
+uuid: 5984ed45-f5c2-43a0-b929-a020e5a752b0
+langcode: en
+status: true
+dependencies:
+  module:
+    - link
+    - paragraphs
+id: paragraph.field_icms_links
+field_name: field_icms_links
+entity_type: paragraph
+type: link
+settings: {  }
+module: link
+locked: false
+cardinality: -1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
