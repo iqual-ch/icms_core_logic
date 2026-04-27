@@ -904,9 +904,9 @@ function _icms_core_logic_convert_layout_tabs(array $tab_mapping): string {
 function icms_core_logic_update_9015() {
   $config_factory = \Drupal::configFactory();
   $log = '';
+  $obsolete_types = ['icms_layout_tabs', 'icms_tab_element', 'icms_layout_flip_teasers'];
 
   // Delete any remaining paragraphs of obsolete types
-  $obsolete_types = ['icms_layout_tabs', 'icms_tab_element', 'icms_layout_flip_teasers'];
   $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
   foreach ($obsolete_types as $type) {
     $ids = $storage->getQuery()
@@ -977,6 +977,30 @@ function icms_core_logic_update_9015() {
       $field_storage->delete();
       $log .= ' ' . (string) new TranslatableMarkup('Deleted @field field storage.', ['@field' => $field_name]);
     }
+  }
+
+  $bundle_field_map = \Drupal::keyValue('entity.definitions.bundle_field_map')->get('paragraph', []);
+  $bundle_map_updated = FALSE;
+  foreach ($bundle_field_map as &$entry) {
+    if (empty($entry['bundles']) || !is_array($entry['bundles'])) {
+      continue;
+    }
+
+    foreach ($obsolete_types as $obsolete_type) {
+      if (isset($entry['bundles'][$obsolete_type])) {
+        unset($entry['bundles'][$obsolete_type]);
+        $bundle_map_updated = TRUE;
+      }
+    }
+  }
+  unset($entry);
+
+  if ($bundle_map_updated) {
+    \Drupal::keyValue('entity.definitions.bundle_field_map')->set('paragraph', $bundle_field_map);
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
+    $log .= ' ' . (string) new TranslatableMarkup('Removed obsolete paragraph bundles from the persistent field map.');
   }
 
   return $log;
