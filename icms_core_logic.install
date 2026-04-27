@@ -26,7 +26,7 @@ function icms_core_logic_install() {
   // Note: During site installation with --existing-config, this may be
   // overwritten by config import. The icms_admin.webform_install_subscriber
   // event subscriber will reinstall webforms after config import completes.
-  icms_admin_install_webform('webform.webform.contact', 'icms_core_logic');
+  icms_core_logic_install_webform('webform.webform.contact', 'icms_core_logic');
 }
 
 /**
@@ -262,8 +262,8 @@ function icms_core_logic_update_9003() {
 /**
  * Install contact webform from config file.
  */
-function icms_core_logic_update_9004() {
-  $success = icms_admin_install_webform('webform.webform.contact', 'icms_core_logic');
+function icms_core_logic_update_9045() {
+  $success = icms_core_logic_install_webform('webform.webform.contact', 'icms_core_logic');
 
   if ($success) {
     return new TranslatableMarkup('Installed contact webform.');
@@ -1011,4 +1011,95 @@ function icms_core_logic_update_9016() {
   }
 
   return (string) new TranslatableMarkup('Set callToActionVariant on @count paragraphs.', ['@count' => $count]);
+}
+
+
+/**
+ * Helper function to install a webform from a YAML config file.
+ *
+ * This shared utility can be used by any module that needs to install webforms
+ * programmatically from config files, keeping the code DRY.
+ *
+ * @param string $config_name
+ *   The config name (e.g., 'webform.webform.contact').
+ * @param string $module_name
+ *   The module name where the config file is located.
+ *
+ * @return bool
+ *   TRUE if successful, FALSE otherwise.
+ */
+function icms_core_logic_install_webform($config_name, $module_name) {
+  // Check if webform module is installed.
+  if (!\Drupal::moduleHandler()->moduleExists('webform')) {
+    \Drupal::logger($module_name)->warning(
+      'Webform module not installed yet, skipping webform installation for @config',
+      ['@config' => $config_name]
+    );
+    return FALSE;
+  }
+
+  try {
+    // Extract webform ID from config name.
+    $webform_id = str_replace('webform.webform.', '', $config_name);
+
+    // Check if webform already exists.
+    $webform_storage = \Drupal::entityTypeManager()->getStorage('webform');
+    $existing_webform = $webform_storage->load($webform_id);
+
+    if ($existing_webform) {
+      \Drupal::logger($module_name)->info(
+        'Webform @id already exists, skipping installation.',
+        ['@id' => $webform_id]
+      );
+      return TRUE;
+    }
+
+    // Load the YAML file from the module's config directory.
+    $module_path = \Drupal::service('extension.list.module')->getPath($module_name);
+    $config_file = $module_path . '/config/install/' . $config_name . '.yml';
+
+    if (!file_exists($config_file)) {
+      \Drupal::logger($module_name)->error(
+        'Webform config file not found: @file',
+        ['@file' => $config_file]
+      );
+      return FALSE;
+    }
+
+    // Parse the YAML file.
+    $config_data = Yaml::parseFile($config_file);
+
+    if (empty($config_data)) {
+      \Drupal::logger($module_name)->error(
+        'Failed to parse webform config file: @file',
+        ['@file' => $config_file]
+      );
+      return FALSE;
+    }
+
+    // Remove UUID and other deployment-specific keys.
+    unset($config_data['uuid']);
+    unset($config_data['_core']);
+
+    // Create the webform entity.
+    $webform = $webform_storage->create($config_data);
+    $webform->save();
+
+    \Drupal::logger($module_name)->info(
+      'Successfully installed webform: @id',
+      ['@id' => $webform_id]
+    );
+
+    return TRUE;
+  }
+  catch (\Exception $e) {
+    \Drupal::logger($module_name)->error(
+      'Error installing webform @config: @message',
+      [
+        '@config' => $config_name,
+        '@message' => $e->getMessage(),
+      ]
+    );
+    return FALSE;
+  }
 }
