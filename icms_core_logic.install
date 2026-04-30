@@ -765,14 +765,10 @@ function _icms_core_logic_convert_tab_elements(array &$mapping): string {
     $new_paragraph = Paragraph::create([
       'type' => 'icms_collapsible_element',
       'langcode' => $old_paragraph->get('langcode')->value,
-      'field_icms_collapsible_title' => $old_paragraph->get('field_icms_tab_title')->getValue(),
-      'field_icms_collapsible_layouts' => [
-        [
-          'target_id' => $child->id(),
-          'target_revision_id' => $child->getRevisionId(),
-        ],
-      ],
     ]);
+    $new_paragraph->save();
+    $new_paragraph->set('field_icms_collapsible_title', $old_paragraph->get('field_icms_tab_title')->getValue());
+    $new_paragraph->set('field_icms_collapsible_layouts', [$child]);
     $new_paragraph->save();
 
     // Copy translations to collapsible_element.
@@ -846,13 +842,15 @@ function _icms_core_logic_convert_layout_tabs(array $tab_mapping): string {
     $new_paragraph = Paragraph::create([
       'type' => 'icms_layout_collapsible',
       'langcode' => $old_paragraph->get('langcode')->value,
-      'field_icms_pretitle' => $old_paragraph->get('field_icms_pretitle')->getValue(),
-      'field_icms_title' => $old_paragraph->get('field_icms_title')->getValue(),
-      'field_icms_title_weight' => $old_paragraph->get('field_icms_title_weight')->getValue(),
-      'field_icms_title_style' => $old_paragraph->get('field_icms_title_style')->getValue(),
-      'field_icms_text' => $old_paragraph->get('field_icms_text')->getValue(),
-      'field_icms_collapsible_elements' => $collapsible_elements,
     ]);
+    $new_paragraph->save();
+    $new_paragraph->set('field_icms_pretitle', $old_paragraph->get('field_icms_pretitle')->getValue());
+    $new_paragraph->set('field_icms_title', $old_paragraph->get('field_icms_title')->getValue());
+    $new_paragraph->set('field_icms_title_weight', $old_paragraph->get('field_icms_title_weight')->getValue());
+    $new_paragraph->set('field_icms_title_style', $old_paragraph->get('field_icms_title_style')->getValue());
+    $new_paragraph->set('field_icms_text', $old_paragraph->get('field_icms_text')->getValue());
+    $new_paragraph->set('field_icms_collapsible_elements', $collapsible_elements);
+    $new_paragraph->save();
 
     // Set collapsibleVariant blokkli option.
     $blokkli_data = $old_paragraph->getAllBehaviorSettings()['paragraphs_blokkli_data'] ?? [];
