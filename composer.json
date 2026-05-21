@@ -13,5 +13,5 @@
             "Drupal\\icms_core_logic\\": "src/"
         }
     },
-    "version": "1.5.18"
+    "version": "1.x-dev"
 }
