@@ -100,9 +100,6 @@ settings:
       icms_layout_faq:
         weight: 55
         enabled: false
-      icms_layout_flip_teasers:
-        weight: 56
-        enabled: false
       icms_layout_gallery:
         weight: 57
         enabled: true
@@ -124,9 +121,6 @@ settings:
       icms_layout_table:
         weight: 63
         enabled: true
-      icms_layout_tabs:
-        weight: 64
-        enabled: false
       icms_layout_team:
         weight: 65
         enabled: false
@@ -162,9 +156,6 @@ settings:
         enabled: false
       icms_partnership_element:
         weight: 76
-        enabled: false
-      icms_tab_element:
-        weight: 77
         enabled: false
       icms_team_element:
         weight: 78

@@ -172,8 +172,6 @@ schema_configuration:
         field_icms_question: field_icms_question
         field_icms_signature: field_icms_signature
         field_icms_subtitle: field_icms_subtitle
-        field_icms_tab_elements: field_icms_tab_elements
-        field_icms_tab_title: field_icms_tab_title
         field_icms_table: field_icms_table
         field_icms_team_elements: field_icms_team_elements
         field_icms_testimonial_elements: field_icms_testimonial_elements
@@ -329,8 +327,6 @@ schema_configuration:
           enabled: true
         icms_layout_faq:
           enabled: true
-        icms_layout_flip_teasers:
-          enabled: true
         icms_layout_gallery:
           enabled: true
         icms_layout_hero_image:
@@ -344,8 +340,6 @@ schema_configuration:
         icms_layout_partnerships:
           enabled: true
         icms_layout_table:
-          enabled: true
-        icms_layout_tabs:
           enabled: true
         icms_layout_team:
           enabled: true
@@ -370,8 +364,6 @@ schema_configuration:
         icms_logo_element:
           enabled: true
         icms_partnership_element:
-          enabled: true
-        icms_tab_element:
           enabled: true
         icms_team_element:
           enabled: true

@@ -44,6 +44,9 @@ settings:
       icms_card_element:
         weight: 44
         enabled: false
+      icms_collapsible_element:
+        weight: 43
+        enabled: false
       icms_faq_element:
         weight: 45
         enabled: false
@@ -59,6 +62,9 @@ settings:
       icms_layout_cards:
         weight: 49
         enabled: false
+      icms_layout_collapsible:
+        weight: 49
+        enabled: false
       icms_layout_contact:
         weight: 50
         enabled: false
@@ -67,9 +73,6 @@ settings:
         enabled: false
       icms_layout_faq:
         weight: 52
-        enabled: false
-      icms_layout_flip_teasers:
-        weight: 53
         enabled: false
       icms_layout_gallery:
         weight: 54
@@ -91,9 +94,6 @@ settings:
         enabled: false
       icms_layout_table:
         weight: 60
-        enabled: false
-      icms_layout_tabs:
-        weight: 61
         enabled: false
       icms_layout_team:
         weight: 62
@@ -130,9 +130,6 @@ settings:
         enabled: false
       icms_partnership_element:
         weight: 72
-        enabled: false
-      icms_tab_element:
-        weight: 73
         enabled: false
       icms_team_element:
         weight: 74
