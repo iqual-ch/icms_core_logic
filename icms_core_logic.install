@@ -137,50 +137,40 @@ function icms_core_logic_update_9003() {
 
     'field_icms_pretitle' => [
       'label' => 'PreTitle',
-      'settings' => [
-
-      ],
+      'settings' => [],
       'paragraphs' => [
         'icms_layout_tabs',
-        'icms_layout_call_to_action'
+        'icms_layout_call_to_action',
       ],
     ],
 
     'field_icms_title' => [
       'label' => 'Title',
-      'settings' => [
-
-      ],
+      'settings' => [],
       'paragraphs' => [
-        'icms_layout_call_to_action'
+        'icms_layout_call_to_action',
       ],
     ],
 
     'field_icms_title_weight' => [
       'label' => 'Title weight',
-      'settings' => [
-
-      ],
+      'settings' => [],
       'paragraphs' => [
-        'icms_layout_call_to_action'
+        'icms_layout_call_to_action',
       ],
     ],
 
     'field_icms_title_style' => [
       'label' => 'Title style',
-      'settings' => [
-
-      ],
+      'settings' => [],
       'paragraphs' => [
-        'icms_layout_call_to_action'
+        'icms_layout_call_to_action',
       ],
     ],
 
     'field_icms_subtitle' => [
       'label' => 'SubTitle',
-      'settings' => [
-
-      ],
+      'settings' => [],
       'paragraphs' => [
         'icms_layout_call_to_action',
         'icms_layout_downloads',
@@ -189,9 +179,7 @@ function icms_core_logic_update_9003() {
 
     'field_icms_text' => [
       'label' => 'Text',
-      'settings' => [
-
-      ],
+      'settings' => [],
       'paragraphs' => [
         'icms_layout_tabs',
         'icms_layout_testimonials',
@@ -240,7 +228,7 @@ function icms_core_logic_update_9003() {
 
         $component = $formDisplay->getComponent($fieldName);
         if (!$component) {
-          $weight = isset($fieldOrder[$fieldName]) ? $fieldOrder[$fieldName] : 10;
+          $weight = $fieldOrder[$fieldName] ?? 10;
           $formDisplay->setComponent($fieldName, [
             'type' => $fieldStorage->getType() === 'entity_reference_revisions' ? 'paragraphs' : 'string_textfield',
             'weight' => $weight,
@@ -254,10 +242,9 @@ function icms_core_logic_update_9003() {
     }
   }
 
-  return (string) new TranslatableMarkup($log ?: 'No changes were needed.');
+  return $log ?: 'No changes were needed.';
 
 }
-
 
 /**
  * Install contact webform from config file.
@@ -913,7 +900,7 @@ function icms_core_logic_update_9015() {
       ->execute();
     if (!empty($ids)) {
       $storage->delete($storage->loadMultiple($ids));
-      $log .= (string) new TranslatableMarkup('Deleted @count remaining @type paragraphs. ', ['@count' => count($ids), '@type' => $type]);
+      $log .= (string) new TranslatableMarkup('Deleted @count remaining @type paragraphs.', ['@count' => count($ids), '@type' => $type]) . ' ';
     }
   }
 
@@ -1034,7 +1021,6 @@ function icms_core_logic_update_9016() {
 
   return (string) new TranslatableMarkup('Set callToActionVariant on @count paragraphs.', ['@count' => $count]);
 }
-
 
 /**
  * Helper function to install a webform from a YAML config file.
