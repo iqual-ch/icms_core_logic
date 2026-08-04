@@ -6,7 +6,7 @@
         "GPL-2.0-or-later"
     ],
     "require": {
-        "drupal/core": "^10 || ^11"
+        "drupal/core": "~11.3.5"
     },
     "autoload": {
         "psr-4": {
