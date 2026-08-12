@@ -1023,6 +1023,35 @@ function icms_core_logic_update_9016() {
 }
 
 /**
+ * Grant the new "flush cache" permission to roles that could flush before.
+ *
+ * The admin_toolbar patch changed from loosening the flush routes to
+ * "access administration pages" to the upstream approach of a dedicated
+ * "flush cache" permission (https://drupal.org/i/3517876). Grant it to the
+ * roles that previously had flush access so the toolbar entries keep working.
+ */
+function icms_core_logic_update_9046() {
+  if (!\Drupal::moduleHandler()->moduleExists('admin_toolbar_tools')) {
+    return (string) new TranslatableMarkup('Skipped granting "flush cache" because admin_toolbar_tools is not installed.');
+  }
+
+  $granted = [];
+  foreach (['administrator_client', 'content_editor'] as $role_id) {
+    $role = Role::load($role_id);
+    if ($role && !$role->hasPermission('flush cache')) {
+      $role->grantPermission('flush cache');
+      $role->save();
+      $granted[] = $role_id;
+    }
+  }
+
+  if (!$granted) {
+    return (string) new TranslatableMarkup('No roles needed the "flush cache" permission.');
+  }
+  return (string) new TranslatableMarkup('Granted "flush cache" to: @roles.', ['@roles' => implode(', ', $granted)]);
+}
+
+/**
  * Helper function to install a webform from a YAML config file.
  *
  * This shared utility can be used by any module that needs to install webforms
