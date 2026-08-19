@@ -8,6 +8,7 @@
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\node\Entity\NodeType;
+use Drupal\user\UserInterface;
 
 /**
  * Allowed values callback listing every content type by machine name.
@@ -23,4 +24,84 @@ function icms_core_logic_content_types_allowed_values(FieldStorageDefinitionInte
   }
   natcasesort($options);
   return $options;
+}
+
+/**
+ * The longest username ICMS stores, and the single source of that number.
+ *
+ * `users_field_data.name` is `varchar(60)` with a unique index, while an email
+ * address may be up to 254 characters — so the address cannot simply be used
+ * as-is; a long one would abort the save with a database exception.
+ *
+ * Two characters below the column width are held back for the suffix
+ * email_registration_unique_username() appends when a shortened name collides
+ * with an account that already exists. It counts up without a bound, so the
+ * reserve covers "_1" through "_9": a shortened address shared by a tenth
+ * account would overflow again. That needs ten accounts whose addresses agree
+ * on their first 58 characters, which is why the reserve stops there rather
+ * than growing to fit an arbitrary number.
+ *
+ * Anything deriving this limit — the conflict report, the upgrade guide's
+ * pre-flight query — reads it from here instead of repeating the number.
+ *
+ * @return int
+ *   The maximum number of characters a stored username may use.
+ */
+function icms_core_logic_username_max_length(): int {
+  return UserInterface::USERNAME_MAX_LENGTH - 2;
+}
+
+/**
+ * Builds the username ICMS stores for an email address.
+ *
+ * Shortening does not affect the acceptance criterion: email_registration
+ * authenticates through user_load_by_mail(), so the full address still logs the
+ * account in even when the stored username had to be shortened.
+ *
+ * @param string $mail
+ *   The email address.
+ *
+ * @return string
+ *   The username for that address.
+ *
+ * @see icms_core_logic_username_max_length()
+ */
+function icms_core_logic_username_for_mail(string $mail): string {
+  $max = icms_core_logic_username_max_length();
+
+  return mb_strlen($mail) > $max ? mb_substr($mail, 0, $max) : $mail;
+}
+
+/**
+ * Implements hook_email_registration_name_alter().
+ *
+ * ICMS-714: the email address is the username, always and everywhere. This is
+ * the single place that decides it, and it runs last — icms_core_logic has
+ * weight 50, email_registration has none — so whatever the contrib module
+ * derived from the address is replaced by the address itself.
+ *
+ * email_registration ships a submodule, email_registration_username, that also
+ * assigns the address. ICMS does not use it: it hands the address over
+ * unshortened, and it only keeps an account in sync when the stored username is
+ * byte-for-byte the previous address. Anything created programmatically — a
+ * migration, a client module, a seeding script — is named once and then drifts,
+ * which is exactly the split the ticket sets out to remove. Assigning
+ * unconditionally here leaves no such gap.
+ *
+ * Accounts without an address keep the username they have: the anonymous user,
+ * whose empty name is what makes getDisplayName() fall back to the
+ * user.settings:anonymous label, and legacy accounts that predate a required
+ * email address.
+ *
+ * @see icms_core_logic_username_for_mail()
+ * @see icms_core_logic_update_9047()
+ */
+function icms_core_logic_email_registration_name_alter(string &$newAccountName, UserInterface $account): void {
+  $mail = (string) $account->getEmail();
+
+  if ($mail === '') {
+    return;
+  }
+
+  $newAccountName = icms_core_logic_username_for_mail($mail);
 }
