@@ -2120,3 +2120,50 @@ function icms_core_logic_update_9056() {
 
   return (string) new TranslatableMarkup('Imported the default texts, adding the spam protection message.');
 }
+
+/**
+ * Listing types: switch the shared storage to the allowed values function.
+ *
+ * The function lives in icms_core_logic, so bundles can register their own
+ * options per paragraph type via hook_icms_listing_type_options_alter().
+ */
+function icms_core_logic_update_9056() {
+  $messages = [];
+
+  $storage = FieldStorageConfig::loadByName('paragraph', 'field_icms_listing_type');
+  if ($storage) {
+    // Write through the config factory: the entity save would trip options'
+    // hook_field_storage_config_update_forbid(), which treats the move to an
+    // allowed_values_function as removed keys even though the function keeps
+    // providing them. No storage schema change is involved.
+    \Drupal::configFactory()
+      ->getEditable('field.storage.paragraph.field_icms_listing_type')
+      ->set('settings.allowed_values', [])
+      ->set('settings.allowed_values_function', 'icms_core_logic_listing_type_allowed_values')
+      ->save();
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    $messages[] = 'Switched field_icms_listing_type to the shared allowed values function.';
+
+    // The option labels moved from config translation to t(): remove the
+    // config translation overrides, which would otherwise merge stale
+    // label-only entries into the now empty allowed_values list.
+    $language_manager = \Drupal::languageManager();
+    foreach (array_keys($language_manager->getLanguages()) as $langcode) {
+      $override = $language_manager->getLanguageConfigOverride($langcode, 'field.storage.paragraph.field_icms_listing_type');
+      if (!$override->isNew()) {
+        $override->delete();
+        $messages[] = "Removed the $langcode config translation of the storage.";
+      }
+    }
+  }
+  else {
+    $messages[] = 'No field_icms_listing_type storage on this site (no listing bundle installed).';
+  }
+
+  // Seed the interface translations replacing the config translations.
+  icms_core_logic_seed_interface_translations(icms_core_logic_listing_type_translations());
+  $messages[] = 'Seeded listing type option label translations.';
+
+  return implode(' ', $messages);
+}
