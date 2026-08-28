@@ -236,6 +236,13 @@ submit_success:
     de: 'Ihr Formular wurde erfolgreich gesendet.'
     fr: 'Votre formulaire a été envoyé avec succès.'
     it: 'Il tuo modulo è stato inviato con successo.'
+confirmation_title:
+  context: webform
+  default:
+    en: 'Thank you!'
+    de: 'Vielen Dank!'
+    fr: 'Merci beaucoup !'
+    it: 'Grazie mille!'
 default_link_label:
   context: listing
   default:
