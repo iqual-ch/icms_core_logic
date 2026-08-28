@@ -1052,6 +1052,78 @@ function icms_core_logic_update_9046() {
 }
 
 /**
+ * Enable multi-image upload via media_bulk_upload and optional alt text.
+ */
+function icms_core_logic_update_9047() {
+  $messages = [];
+  $module_installer = \Drupal::service('module_installer');
+  $module_handler = \Drupal::moduleHandler();
+
+  if (!$module_handler->moduleExists('media_bulk_upload')) {
+    $module_installer->install(['media_bulk_upload']);
+    $messages[] = 'Installed media_bulk_upload module.';
+  }
+  else {
+    $messages[] = 'media_bulk_upload module was already installed.';
+  }
+
+  // Provide a bulk upload form for image media. Values mirror the exported
+  // media_bulk_upload.media_bulk_config.images.yml.
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $has_media_library_form_mode = (bool) $entity_type_manager
+    ->getStorage('entity_form_mode')
+    ->load('media.media_library');
+  $settings = [
+    'media_types' => [
+      'image' => 'image',
+      'audio' => 0,
+      'document' => 0,
+      'icon' => 0,
+      'remote_video' => 0,
+      'video' => 0,
+    ],
+    'form_mode' => $has_media_library_form_mode ? 'media_library' : 'default',
+    'upload_location' => 'private://media-bulk-upload',
+  ];
+  $storage = $entity_type_manager->getStorage('media_bulk_config');
+  $bulk_config = $storage->load('images');
+  if (!$bulk_config) {
+    $storage->create([
+      'id' => 'images',
+      'label' => 'Images',
+    ] + $settings)->save();
+    $messages[] = 'Created images bulk upload form.';
+  }
+  else {
+    foreach ($settings as $key => $value) {
+      $bulk_config->set($key, $value);
+    }
+    $bulk_config->save();
+    $messages[] = 'Updated images bulk upload form.';
+  }
+
+  // Alt text can not be entered per file during bulk upload, so it must be
+  // optional for bulk-created image media to validate.
+  $field = FieldConfig::load('media.image.field_media_image');
+  if ($field && $field->getSetting('alt_field_required')) {
+    $field->setSetting('alt_field_required', FALSE);
+    $field->save();
+    $messages[] = 'Made image alt text optional.';
+  }
+
+  foreach (['content_editor', 'administrator_client'] as $role_id) {
+    $role = Role::load($role_id);
+    if ($role && !$role->hasPermission('use images bulk upload form')) {
+      $role->grantPermission('use images bulk upload form');
+      $role->save();
+      $messages[] = "Granted bulk upload permission to $role_id.";
+    }
+  }
+
+  return (string) new TranslatableMarkup(implode(' ', $messages));
+}
+
+/**
  * Helper function to install a webform from a YAML config file.
  *
  * This shared utility can be used by any module that needs to install webforms
