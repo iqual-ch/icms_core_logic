@@ -1124,6 +1124,103 @@ function icms_core_logic_update_9047() {
 }
 
 /**
+ * Add the sort-order (weight) field to all ICMS content types.
+ *
+ * ICMS-277 shipped field_icms_weight only as exported and recipe config, so
+ * installations that predate it never received the field. Ensures the field
+ * storage, the field on every ICMS content type present on the site, and the
+ * widget inside the "Teaser Settings" group. The event form display keeps the
+ * field hidden, in line with the bundle's exported configuration.
+ */
+function icms_core_logic_update_9048() {
+  $messages = [];
+
+  $storage = FieldStorageConfig::loadByName('node', 'field_icms_weight');
+  if (!$storage) {
+    $storage = FieldStorageConfig::create([
+      'field_name' => 'field_icms_weight',
+      'entity_type' => 'node',
+      'type' => 'integer',
+      'settings' => ['unsigned' => FALSE, 'size' => 'normal'],
+      'cardinality' => 1,
+      'translatable' => TRUE,
+    ]);
+    $storage->save();
+    $messages[] = 'Created the field_icms_weight storage.';
+  }
+
+  $types = [
+    'icms_page',
+    'icms_contenthub',
+    'icms_event',
+    'icms_location',
+    'icms_news',
+    'icms_people',
+    'icms_pressrelease',
+    'icms_product',
+    'icms_project',
+  ];
+  foreach ($types as $type) {
+    if (!\Drupal::entityTypeManager()->getStorage('node_type')->load($type)) {
+      continue;
+    }
+
+    if (!FieldConfig::loadByName('node', $type, 'field_icms_weight')) {
+      $field = FieldConfig::create([
+        'field_storage' => $storage,
+        'bundle' => $type,
+        'label' => 'Sort order',
+        'description' => 'Defines the sorting order of the entries. Higher values are shown first. This field overrides the default sorting by publication date.',
+        'required' => FALSE,
+        'translatable' => FALSE,
+      ]);
+      if (\Drupal::moduleHandler()->moduleExists('tmgmt_content')) {
+        $field->setThirdPartySetting('tmgmt_content', 'excluded', FALSE);
+      }
+      $field->save();
+      $messages[] = "Added field_icms_weight to $type.";
+    }
+
+    if ($type === 'icms_event') {
+      continue;
+    }
+
+    $form_display = EntityFormDisplay::load("node.$type.default");
+    if ($form_display && !$form_display->getComponent('field_icms_weight')) {
+      // Show the field first inside the Teaser Settings group.
+      $weight = 18;
+      $group = $form_display->getThirdPartySetting('field_group', 'group_teaser');
+      if ($group) {
+        $sibling_weights = [];
+        foreach ($group['children'] as $child) {
+          $component = $form_display->getComponent($child);
+          if (isset($component['weight'])) {
+            $sibling_weights[] = $component['weight'];
+          }
+        }
+        if ($sibling_weights) {
+          $weight = min($sibling_weights) - 1;
+        }
+        if (!in_array('field_icms_weight', $group['children'], TRUE)) {
+          array_unshift($group['children'], 'field_icms_weight');
+          $form_display->setThirdPartySetting('field_group', 'group_teaser', $group);
+        }
+      }
+      $form_display->setComponent('field_icms_weight', [
+        'type' => 'number',
+        'region' => 'content',
+        'weight' => $weight,
+        'settings' => ['placeholder' => ''],
+      ]);
+      $form_display->save();
+      $messages[] = "Added field_icms_weight to the $type form.";
+    }
+  }
+
+  return (string) new TranslatableMarkup(implode(' ', $messages) ?: 'field_icms_weight was already present everywhere.');
+}
+
+/**
  * Helper function to install a webform from a YAML config file.
  *
  * This shared utility can be used by any module that needs to install webforms
