@@ -94,7 +94,7 @@ function icms_core_logic_username_for_mail(string $mail): string {
  * email address.
  *
  * @see icms_core_logic_username_for_mail()
- * @see icms_core_logic_update_9054()
+ * @see icms_core_logic_update_9047()
  */
 function icms_core_logic_email_registration_name_alter(string &$newAccountName, UserInterface $account): void {
   $mail = (string) $account->getEmail();
@@ -104,108 +104,4 @@ function icms_core_logic_email_registration_name_alter(string &$newAccountName, 
   }
 
   $newAccountName = icms_core_logic_username_for_mail($mail);
-}
-
-/**
- * Allowed values callback for the shared field_icms_listing_type storage.
- *
- * Every ICMS bundle recipe ships an identical copy of the storage definition
- * (recipes apply strictly, so the copies may never diverge). The base options
- * therefore live here, and a bundle logic module adds options for its own
- * listing paragraph type via hook_icms_listing_type_options_alter() — without
- * the shared storage definition changing per bundle.
- *
- * @see \icms_bundle_event_logic_icms_listing_type_options_alter()
- */
-function icms_core_logic_listing_type_allowed_values(FieldStorageDefinitionInterface $definition, ?FieldableEntityInterface $entity = NULL, ?bool &$cacheable = NULL): array {
-  // The options depend on the paragraph bundle, so the result must not be
-  // statically cached across entities.
-  $cacheable = FALSE;
-
-  $options = [
-    'all' => t('Overview (All)'),
-    'manual' => t('Topic, Manual'),
-    'contextual' => t('Topic, Contextual'),
-  ];
-  \Drupal::moduleHandler()->alter('icms_listing_type_options', $options, $entity);
-
-  return $options;
-}
-
-/**
- * Seeds interface translations, keeping existing ones untouched.
- *
- * Used for strings that moved from config translation to t() — such as the
- * listing type option labels — and for strings a bundle introduces, so
- * editors see them translated without a manual import.
- *
- * @param array $translations
- *   Translations keyed by langcode, each an array of source => translation.
- */
-function icms_core_logic_seed_interface_translations(array $translations): void {
-  if (!\Drupal::moduleHandler()->moduleExists('locale')) {
-    return;
-  }
-
-  /** @var \Drupal\locale\StringStorageInterface $storage */
-  $storage = \Drupal::service('locale.storage');
-  $installed = \Drupal::languageManager()->getLanguages();
-  $updated = FALSE;
-
-  foreach ($translations as $langcode => $strings) {
-    if (!isset($installed[$langcode])) {
-      continue;
-    }
-    foreach ($strings as $source => $translation) {
-      $string = $storage->findString(['source' => $source, 'context' => '']);
-      if (!$string) {
-        $string = $storage->createString([
-          'source' => $source,
-          'context' => '',
-        ]);
-        $string->save();
-      }
-      $existing = $storage->findTranslation([
-        'lid' => $string->lid,
-        'language' => $langcode,
-      ]);
-      if ($existing && !empty($existing->translation)) {
-        continue;
-      }
-      $storage->createTranslation([
-        'lid' => $string->lid,
-        'language' => $langcode,
-        'translation' => $translation,
-        'customized' => LOCALE_CUSTOMIZED,
-      ])->save();
-      $updated = TRUE;
-    }
-  }
-
-  if ($updated) {
-    _locale_refresh_translations(array_keys($translations));
-  }
-}
-
-/**
- * Returns the interface translations for the base listing type options.
- */
-function icms_core_logic_listing_type_translations(): array {
-  return [
-    'de' => [
-      'Overview (All)' => 'Übersicht (Alle)',
-      'Topic, Manual' => 'Thema, Manuell',
-      'Topic, Contextual' => 'Thema, Kontextuell',
-    ],
-    'fr' => [
-      'Overview (All)' => 'Vue d’ensemble (tous)',
-      'Topic, Manual' => 'Thème, manuel',
-      'Topic, Contextual' => 'Thème, contextuel',
-    ],
-    'it' => [
-      'Overview (All)' => 'Panoramica (tutti)',
-      'Topic, Manual' => 'Tema, manuale',
-      'Topic, Contextual' => 'Tema, contestuale',
-    ],
-  ];
 }
