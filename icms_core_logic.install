@@ -1023,6 +1023,85 @@ function icms_core_logic_update_9016() {
 }
 
 /**
+ * Use the Linkit widget for all link fields so media documents can be linked.
+ */
+function icms_core_logic_update_9049() {
+  $log = "";
+
+  // The linkit widget and matchers require the linkit module.
+  if (!\Drupal::moduleHandler()->moduleExists('linkit')) {
+    \Drupal::service('module_installer')->install(['linkit']);
+    $log .= "Installed the linkit module. \n";
+  }
+
+  // Ensure the "content" linkit profile exists and can match media documents.
+  $profile_storage = \Drupal::entityTypeManager()->getStorage('linkit_profile');
+  /** @var \Drupal\linkit\ProfileInterface|null $profile */
+  $profile = $profile_storage->load('content');
+  $profile_changed = FALSE;
+  if (!$profile) {
+    $profile = $profile_storage->create([
+      'id' => 'content',
+      'label' => 'Content',
+    ]);
+    $profile->addMatcher([
+      'id' => 'entity:node',
+      'settings' => [
+        'metadata' => '[node:content-type:name] #[node:nid] | [node:created:olivero_medium] von [node:author]',
+        'bundles' => ['icms_page' => 'icms_page'],
+        'group_by_bundle' => FALSE,
+        'substitution_type' => 'canonical',
+        'limit' => 100,
+        'include_unpublished' => FALSE,
+      ],
+      'weight' => 0,
+    ]);
+    $profile_changed = TRUE;
+    $log .= "Created the missing linkit profile \"content\". \n";
+  }
+  if (!$profile->getMatcherByEntityType('media')) {
+    $profile->addMatcher([
+      'id' => 'entity:media',
+      'settings' => [
+        'metadata' => '[media:bundle] #[media:mid]',
+        'bundles' => ['document' => 'document'],
+        'group_by_bundle' => TRUE,
+        'substitution_type' => 'media',
+        'limit' => 100,
+      ],
+      'weight' => 1,
+    ]);
+    $profile_changed = TRUE;
+    $log .= "Added the media (document) matcher to the linkit profile \"content\". \n";
+  }
+  if ($profile_changed) {
+    $profile->save();
+  }
+
+  // Switch every link field from the plain link widget to the linkit widget,
+  // keeping the existing weight, region and placeholder settings.
+  $display_storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+  foreach ($display_storage->loadMultiple() as $form_display) {
+    $changed = FALSE;
+    foreach ($form_display->getComponents() as $name => $component) {
+      if (($component['type'] ?? '') === 'link_default') {
+        $component['type'] = 'linkit';
+        $component['settings']['linkit_profile'] = 'content';
+        $component['settings']['linkit_auto_link_text'] = FALSE;
+        $form_display->setComponent($name, $component);
+        $changed = TRUE;
+        $log .= 'Switched ' . $name . ' on ' . $form_display->id() . " to the linkit widget. \n";
+      }
+    }
+    if ($changed) {
+      $form_display->save();
+    }
+  }
+
+  return (string) new TranslatableMarkup($log ?: 'No changes were needed.');
+}
+
+/**
  * Grant the new "flush cache" permission to roles that could flush before.
  *
  * The admin_toolbar patch changed from loosening the flush routes to
