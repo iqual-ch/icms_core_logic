@@ -1,0 +1,8 @@
+settings:
+  allowed_values:
+    -
+      label: 'Panoramica (tutti)'
+    -
+      label: 'Tema, manuale'
+    -
+      label: 'Tema, contestuale'

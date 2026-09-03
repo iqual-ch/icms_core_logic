@@ -1,0 +1,2 @@
+label: Auflistungstyp
+description: "<strong>Alle:</strong> Zeigt alle Einträge an. Optionale Filter stehen zur Verfügung.<br />\r\n<strong>Thema, Manuell:</strong> Zeigt nur die Einträge an, die dem ausgewählten Thema entsprechen.<br />\r\n<strong>Thema, Kontextuell:</strong> Zeigt nur die Einträge an, die thematisch zum aktuellen Kontext passen."

@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs_blokkli
+id: icms_layout_listing
+label: Listing
+icon_uuid: null
+icon_default: null
+description: 'The <em>Listing</em> displays teasers of the selected content types, either as a filterable overview or narrowed down to specific topics, sorted by date, title or weight.'
+behavior_plugins:
+  paragraphs_blokkli_data:
+    enabled: true

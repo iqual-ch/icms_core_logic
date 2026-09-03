@@ -1,0 +1,160 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.icms_layout_listing.field_icms_content_types
+    - field.field.paragraph.icms_layout_listing.field_icms_listing_type
+    - field.field.paragraph.icms_layout_listing.field_icms_pretitle
+    - field.field.paragraph.icms_layout_listing.field_icms_sorting
+    - field.field.paragraph.icms_layout_listing.field_icms_text
+    - field.field.paragraph.icms_layout_listing.field_icms_title
+    - field.field.paragraph.icms_layout_listing.field_icms_title_style
+    - field.field.paragraph.icms_layout_listing.field_icms_title_weight
+    - field.field.paragraph.icms_layout_listing.field_icms_topics
+    - paragraphs.paragraphs_type.icms_layout_listing
+  module:
+    - conditional_fields
+    - field_group
+    - maxlength
+    - tagify
+    - text
+third_party_settings:
+  field_group:
+    group_icms_title_settings:
+      children:
+        - field_icms_title_weight
+        - field_icms_title_style
+      label: 'Title settings'
+      region: content
+      parent_name: ''
+      weight: 2
+      format_type: html_element
+      format_settings:
+        classes: ''
+        show_empty_fields: false
+        id: ''
+        label_as_html: false
+        element: div
+        show_label: false
+        label_element: h3
+        label_element_classes: ''
+        attributes: 'style="display: block; max-width: fit-content; margin: 0px;"'
+        effect: none
+        speed: fast
+        required_fields: false
+id: paragraph.icms_layout_listing.default
+targetEntityType: paragraph
+bundle: icms_layout_listing
+mode: default
+content:
+  field_icms_content_types:
+    type: options_buttons
+    weight: 11
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_icms_listing_type:
+    type: options_select
+    weight: 12
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_icms_pretitle:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_icms_sorting:
+    type: options_select
+    weight: 14
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_icms_text:
+    type: text_textarea
+    weight: 3
+    region: content
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+  field_icms_title:
+    type: string_textarea
+    weight: 1
+    region: content
+    settings:
+      rows: 2
+      placeholder: ''
+    third_party_settings:
+      maxlength:
+        maxlength_js_label: 'Content limited to @limit characters, remaining: <strong>@remaining</strong>'
+        maxlength_js_enforce: false
+  field_icms_title_style:
+    type: options_select
+    weight: 10
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_icms_title_weight:
+    type: options_select
+    weight: 9
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_icms_topics:
+    type: tagify_select_widget
+    weight: 13
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      placeholder: ''
+    third_party_settings:
+      conditional_fields:
+        68f24568-0ba3-42b6-bdb0-01e24103e1bd:
+          entity_type: paragraph
+          bundle: icms_layout_listing
+          dependee: field_icms_listing_type
+          settings:
+            state: visible
+            reset: true
+            condition: value
+            grouping: AND
+            values_set: 1
+            value: ''
+            values: {  }
+            value_form:
+              -
+                value: manual
+            effect: show
+            effect_options: {  }
+            selector: ''
+        f766efdc-bd14-4343-b4cd-cf5a1c9fc7d7:
+          entity_type: paragraph
+          bundle: icms_layout_listing
+          dependee: field_icms_listing_type
+          settings:
+            state: required
+            reset: true
+            condition: value
+            grouping: AND
+            values_set: 1
+            value: ''
+            values: {  }
+            value_form:
+              -
+                value: manual
+            effect: show
+            effect_options: {  }
+            selector: ''
+  translation:
+    weight: 6
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  status: true

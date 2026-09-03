@@ -1,0 +1,2 @@
+label: 'Tipo di elenco'
+description: "<strong>Tutti:</strong> Mostra tutti gli elementi, con filtri opzionali.<br />\r\n<strong>Tema, manuale:</strong> Mostra solo gli elementi che corrispondono al tema selezionato.<br />\r\n<strong>Tema, contestuale:</strong> Mostra solo gli elementi che corrispondono ai temi del contesto attuale."

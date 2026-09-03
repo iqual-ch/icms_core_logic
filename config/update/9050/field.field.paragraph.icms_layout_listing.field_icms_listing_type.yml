@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_listing_type
+    - paragraphs.paragraphs_type.icms_layout_listing
+  module:
+    - options
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_layout_listing.field_icms_listing_type
+field_name: field_icms_listing_type
+entity_type: paragraph
+bundle: icms_layout_listing
+label: 'Listing Type'
+description: "<strong>All:</strong> Displays all items, with optional filters available.<br />\r\n<strong>Topic, Manual:</strong> Displays only items that match the selected topic.<br />\r\n<strong>Topic, Contextual:</strong> Displays only items that match the topics relevant to the current context."
+required: true
+translatable: false
+default_value:
+  -
+    value: all
+default_value_callback: ''
+settings: {  }
+field_type: list_string

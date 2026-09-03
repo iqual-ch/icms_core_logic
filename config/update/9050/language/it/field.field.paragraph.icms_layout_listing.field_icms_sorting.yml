@@ -1,0 +1,2 @@
+label: Ordinamento
+description: "<strong>Predefinito:</strong> Ordinato per peso, poi dal più recente (data di pubblicazione).<br />\r\n<strong>Alfabetico:</strong> Ordinato per titolo (A–Z).<br />\r\n<strong>Peso:</strong> Ordinato solo in base al campo di ordinamento; i valori più alti vengono mostrati per primi."

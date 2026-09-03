@@ -1,0 +1,8 @@
+settings:
+  allowed_values:
+    -
+      label: 'Vue d’ensemble (tous)'
+    -
+      label: 'Thème, manuel'
+    -
+      label: 'Thème, contextuel'

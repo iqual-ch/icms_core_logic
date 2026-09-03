@@ -1,0 +1,33 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_topics
+    - paragraphs.paragraphs_type.icms_layout_listing
+    - taxonomy.vocabulary.icms_topics
+  module:
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_layout_listing.field_icms_topics
+field_name: field_icms_topics
+entity_type: paragraph
+bundle: icms_layout_listing
+label: Topics
+description: 'Select one or more <em>topics</em> to filter the displayed items.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      icms_topics: icms_topics
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

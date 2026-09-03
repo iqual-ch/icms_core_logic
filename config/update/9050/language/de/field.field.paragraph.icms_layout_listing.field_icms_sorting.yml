@@ -1,0 +1,2 @@
+label: Sortierung
+description: "<strong>Standard:</strong> Sortiert nach Gewichtung, dann neueste zuerst (Publikationsdatum).<br />\r\n<strong>Alphabetisch:</strong> Sortiert nach Titel (A–Z).<br />\r\n<strong>Gewichtung:</strong> Sortiert ausschliesslich nach dem Sortierfeld; höhere Werte werden zuerst angezeigt."

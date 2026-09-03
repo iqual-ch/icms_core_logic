@@ -1,0 +1,8 @@
+settings:
+  allowed_values:
+    -
+      label: 'Par défaut (plus récent en premier)'
+    -
+      label: 'Alphabétique (A–Z)'
+    -
+      label: Pondération

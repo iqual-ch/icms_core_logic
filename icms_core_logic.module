@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Runtime hooks and callbacks for ICMS core.
+ */
+
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\node\Entity\NodeType;
+
+/**
+ * Allowed values callback listing every content type by machine name.
+ *
+ * Backs field_icms_content_types on the listing paragraph, so editors pick
+ * the content types a listing shows and bundles installed later appear
+ * without a config change.
+ */
+function icms_core_logic_content_types_allowed_values(FieldStorageDefinitionInterface $definition, ?FieldableEntityInterface $entity = NULL, bool &$cacheable = TRUE): array {
+  $options = [];
+  foreach (NodeType::loadMultiple() as $type) {
+    $options[$type->id()] = (string) $type->label();
+  }
+  natcasesort($options);
+  return $options;
+}

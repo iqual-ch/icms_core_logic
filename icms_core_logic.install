@@ -6,8 +6,10 @@
  */
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\node\Entity\NodeType;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\user\Entity\Role;
@@ -571,14 +573,16 @@ function _icms_core_logic_install_conversion_paragraph_bundles(): string {
 
 /**
  * Install a missing config entity from module-bundled update YAML.
+ *
+ * The YAML is read from config/update/{$directory}/{$config_name}.yml.
  */
-function _icms_core_logic_import_config_entity(string $config_name, string $entity_type_id): bool {
+function _icms_core_logic_import_config_entity(string $config_name, string $entity_type_id, string $directory = '9014'): bool {
   $active_storage = \Drupal::service('config.storage');
   if ($active_storage->exists($config_name)) {
     return FALSE;
   }
 
-  $data = _icms_core_logic_read_exported_config($config_name);
+  $data = _icms_core_logic_read_exported_config($config_name, $directory);
   if (!$data) {
     \Drupal::logger('icms_core_logic')->warning('Skipped installing missing config entity @config because its bundled update YAML file could not be read.', ['@config' => $config_name]);
     return FALSE;
@@ -594,9 +598,9 @@ function _icms_core_logic_import_config_entity(string $config_name, string $enti
 /**
  * Read a config entity from module-bundled update YAML.
  */
-function _icms_core_logic_read_exported_config(string $config_name): ?array {
+function _icms_core_logic_read_exported_config(string $config_name, string $directory = '9014'): ?array {
   $module_path = \Drupal::service('extension.list.module')->getPath('icms_core_logic');
-  $config_path = DRUPAL_ROOT . '/' . $module_path . '/config/update/9014/' . $config_name . '.yml';
+  $config_path = DRUPAL_ROOT . '/' . $module_path . '/config/update/' . $directory . '/' . $config_name . '.yml';
 
   if (!is_readable($config_path)) {
     return NULL;
@@ -1297,6 +1301,197 @@ function icms_core_logic_update_9048() {
   }
 
   return (string) new TranslatableMarkup(implode(' ', $messages) ?: 'field_icms_weight was already present everywhere.');
+}
+
+/**
+ * Add the generic "Listing" layout paragraph.
+ *
+ * Enables conditional_fields (now an icms_core dependency), installs the
+ * icms_layout_listing paragraph type with its fields, displays and config
+ * translations, allows it on every content type that carries the paragraphs
+ * field, exposes it in the GraphQL schema and indexes a sortable title so
+ * listings can be ordered alphabetically.
+ */
+function icms_core_logic_update_9050() {
+  $messages = [];
+
+  // The form display hides the topics field unless the listing is manual.
+  if (!\Drupal::moduleHandler()->moduleExists('conditional_fields')) {
+    \Drupal::service('module_installer')->install(['conditional_fields']);
+    $messages[] = 'Enabled the conditional_fields module.';
+  }
+
+  $config_entities = [
+    'field_storage_config' => [
+      'field.storage.paragraph.field_icms_content_types',
+      'field.storage.paragraph.field_icms_listing_type',
+      'field.storage.paragraph.field_icms_sorting',
+      'field.storage.paragraph.field_icms_topics',
+    ],
+    'paragraphs_type' => [
+      'paragraphs.paragraphs_type.icms_layout_listing',
+    ],
+    'field_config' => [
+      'field.field.paragraph.icms_layout_listing.field_icms_pretitle',
+      'field.field.paragraph.icms_layout_listing.field_icms_title',
+      'field.field.paragraph.icms_layout_listing.field_icms_title_weight',
+      'field.field.paragraph.icms_layout_listing.field_icms_title_style',
+      'field.field.paragraph.icms_layout_listing.field_icms_text',
+      'field.field.paragraph.icms_layout_listing.field_icms_content_types',
+      'field.field.paragraph.icms_layout_listing.field_icms_listing_type',
+      'field.field.paragraph.icms_layout_listing.field_icms_topics',
+      'field.field.paragraph.icms_layout_listing.field_icms_sorting',
+    ],
+    'entity_form_display' => [
+      'core.entity_form_display.paragraph.icms_layout_listing.default',
+    ],
+    'entity_view_display' => [
+      'core.entity_view_display.paragraph.icms_layout_listing.default',
+    ],
+    'language_content_settings' => [
+      'language.content_settings.paragraph.icms_layout_listing',
+    ],
+  ];
+
+  $created = 0;
+  foreach ($config_entities as $entity_type_id => $config_names) {
+    foreach ($config_names as $config_name) {
+      $created += (int) _icms_core_logic_import_config_entity($config_name, $entity_type_id, '9050');
+    }
+  }
+  if ($created > 0) {
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
+    $messages[] = "Installed $created config entities for the listing paragraph.";
+  }
+
+  $translated = _icms_core_logic_import_config_translations('9050');
+  if ($translated > 0) {
+    $messages[] = "Imported $translated config translations.";
+  }
+
+  // Allow the paragraph wherever the other layouts are allowed.
+  $enabled = [];
+  foreach (array_keys(NodeType::loadMultiple()) as $type) {
+    $field = FieldConfig::loadByName('node', $type, 'field_icms_paragraphs');
+    if (!$field) {
+      continue;
+    }
+    $settings = $field->getSetting('handler_settings');
+    if (isset($settings['target_bundles']['icms_layout_listing'])) {
+      continue;
+    }
+    $settings['target_bundles']['icms_layout_listing'] = 'icms_layout_listing';
+    $settings['target_bundles_drag_drop']['icms_layout_listing'] = [
+      'weight' => -73,
+      'enabled' => TRUE,
+    ];
+    $field->setSetting('handler_settings', $settings)->save();
+    $enabled[] = $type;
+  }
+  if ($enabled) {
+    $messages[] = 'Allowed the listing paragraph on: ' . implode(', ', $enabled) . '.';
+  }
+
+  // Expose the paragraph type and its fields in the GraphQL schema.
+  $graphql = \Drupal::configFactory()->getEditable('graphql.graphql_servers.graphql');
+  if (!$graphql->isNew()) {
+    $changed = FALSE;
+    $fields = [
+      'field_icms_content_types',
+      'field_icms_listing_type',
+      'field_icms_sorting',
+      'field_icms_topics',
+    ];
+    foreach ($fields as $field_name) {
+      $key = 'schema_configuration.core_composable.fields.paragraph.' . $field_name;
+      if ($graphql->get($key) !== $field_name) {
+        $graphql->set($key, $field_name);
+        $changed = TRUE;
+      }
+    }
+    $key = 'schema_configuration.core_composable.bundles.paragraph.icms_layout_listing.enabled';
+    if (!$graphql->get($key)) {
+      $graphql->set($key, TRUE);
+      $changed = TRUE;
+    }
+    if ($changed) {
+      $graphql->save();
+      \Drupal::service('config.factory')->reset('graphql.graphql_servers.graphql');
+      $messages[] = 'Exposed the listing paragraph in the GraphQL schema.';
+    }
+  }
+
+  // Index the title as a string so listings can sort alphabetically.
+  $index_config = \Drupal::configFactory()->getEditable('search_api.index.content_search');
+  if (!$index_config->isNew() && !$index_config->get('field_settings.title_sort')) {
+    $index_config->set('field_settings.title_sort', [
+      'label' => 'Title (sortable)',
+      'datasource_id' => 'entity:node',
+      'property_path' => 'title',
+      'type' => 'string',
+      'dependencies' => [
+        'module' => ['node'],
+      ],
+    ])->save();
+    $messages[] = 'Added title_sort to the content_search index.';
+
+    $index = \Drupal::entityTypeManager()->getStorage('search_api_index')->load('content_search');
+    if ($index) {
+      $index->reindex();
+      $messages[] = 'Queued content_search for reindexing.';
+    }
+  }
+
+  return implode(' ', $messages) ?: (string) new TranslatableMarkup('The listing paragraph was already present.');
+}
+
+/**
+ * Import config translations shipped with an update hook's YAML payload.
+ *
+ * Reads config/update/{$directory}/language/{langcode}/{config_name}.yml for
+ * every language configured on the site and saves it as a language override,
+ * skipping config that does not exist and overrides that already exist so
+ * project translations are kept.
+ *
+ * @return int
+ *   The number of overrides written.
+ */
+function _icms_core_logic_import_config_translations(string $directory): int {
+  $language_manager = \Drupal::languageManager();
+  if (!$language_manager instanceof ConfigurableLanguageManagerInterface) {
+    return 0;
+  }
+
+  $module_path = \Drupal::service('extension.list.module')->getPath('icms_core_logic');
+  $base_path = DRUPAL_ROOT . '/' . $module_path . '/config/update/' . $directory . '/language';
+  if (!is_dir($base_path)) {
+    return 0;
+  }
+
+  $active_storage = \Drupal::service('config.storage');
+  $count = 0;
+  foreach (array_keys($language_manager->getLanguages()) as $langcode) {
+    foreach (glob($base_path . '/' . $langcode . '/*.yml') ?: [] as $file) {
+      $config_name = basename($file, '.yml');
+      if (!$active_storage->exists($config_name)) {
+        continue;
+      }
+      $override = $language_manager->getLanguageConfigOverride($langcode, $config_name);
+      if (!$override->isNew()) {
+        continue;
+      }
+      $data = Yaml::parseFile($file);
+      if (!is_array($data) || !$data) {
+        continue;
+      }
+      $override->setData($data)->save();
+      $count++;
+    }
+  }
+
+  return $count;
 }
 
 /**

@@ -1,0 +1,2 @@
+label: 'Type de liste'
+description: "<strong>Tous :</strong> Affiche tous les éléments, avec des filtres optionnels.<br />\r\n<strong>Thème, manuel :</strong> Affiche uniquement les éléments correspondant au thème sélectionné.<br />\r\n<strong>Thème, contextuel :</strong> Affiche uniquement les éléments correspondant aux thèmes du contexte actuel."

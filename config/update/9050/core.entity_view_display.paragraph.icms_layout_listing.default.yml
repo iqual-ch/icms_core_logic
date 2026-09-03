@@ -1,0 +1,89 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.icms_layout_listing.field_icms_content_types
+    - field.field.paragraph.icms_layout_listing.field_icms_listing_type
+    - field.field.paragraph.icms_layout_listing.field_icms_pretitle
+    - field.field.paragraph.icms_layout_listing.field_icms_sorting
+    - field.field.paragraph.icms_layout_listing.field_icms_text
+    - field.field.paragraph.icms_layout_listing.field_icms_title
+    - field.field.paragraph.icms_layout_listing.field_icms_title_style
+    - field.field.paragraph.icms_layout_listing.field_icms_title_weight
+    - field.field.paragraph.icms_layout_listing.field_icms_topics
+    - paragraphs.paragraphs_type.icms_layout_listing
+  module:
+    - options
+    - text
+id: paragraph.icms_layout_listing.default
+targetEntityType: paragraph
+bundle: icms_layout_listing
+mode: default
+content:
+  field_icms_content_types:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 13
+    region: content
+  field_icms_listing_type:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 14
+    region: content
+  field_icms_pretitle:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_icms_sorting:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 16
+    region: content
+  field_icms_text:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  field_icms_title:
+    type: basic_string
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_icms_title_style:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 11
+    region: content
+  field_icms_title_weight:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 12
+    region: content
+  field_icms_topics:
+    type: entity_reference_label
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 15
+    region: content
+hidden:
+  search_api_excerpt: true

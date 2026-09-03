@@ -1,0 +1,2 @@
+label: Tri
+description: "<strong>Par défaut :</strong> Trié par pondération, puis du plus récent au plus ancien (date de publication).<br />\r\n<strong>Alphabétique :</strong> Trié par titre (A–Z).<br />\r\n<strong>Pondération :</strong> Trié uniquement selon le champ d’ordre de tri ; les valeurs les plus élevées apparaissent en premier."

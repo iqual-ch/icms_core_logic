@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_icms_content_types
+    - paragraphs.paragraphs_type.icms_layout_listing
+  module:
+    - options
+    - tmgmt_content
+third_party_settings:
+  tmgmt_content:
+    excluded: false
+id: paragraph.icms_layout_listing.field_icms_content_types
+field_name: field_icms_content_types
+entity_type: paragraph
+bundle: icms_layout_listing
+label: 'Content types'
+description: 'Select the content types to display. Leave empty to list all content types.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string
