@@ -194,6 +194,13 @@ submenu_toggle:
     de: 'Untermenü umschalten'
     fr: 'Afficher ou masquer le sous-menu'
     it: 'Mostra o nascondi il sottomenu'
+spam_protection_error:
+  context: webform
+  default:
+    en: 'The spam protection could not verify this submission. Please try again.'
+    de: 'Der Spam-Schutz konnte diese Übermittlung nicht überprüfen. Bitte versuchen Sie es erneut.'
+    fr: 'La protection anti-spam n''a pas pu vérifier cet envoi. Veuillez réessayer.'
+    it: 'La protezione antispam non ha potuto verificare questo invio. Riprova.'
 submission_error:
   context: webform
   default:

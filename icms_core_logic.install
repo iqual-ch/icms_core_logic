@@ -2111,3 +2111,12 @@ function icms_core_logic_seed_login_translations(): void {
     _locale_refresh_translations([$langcode], $lids);
   }
 }
+
+/**
+ * Import the Turnstile spam protection message.
+ */
+function icms_core_logic_update_9056() {
+  icms_core_logic_import_default_texts();
+
+  return (string) new TranslatableMarkup('Imported the default texts, adding the spam protection message.');
+}
