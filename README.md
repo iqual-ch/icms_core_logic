@@ -10,6 +10,18 @@ This module contains update hooks and cross-bundle logic for ICMS core functiona
 
 ## Drush Commands
 
+### Post-deploy
+
+Runs the ICMS post-deploy steps: warms the GraphQL schema for every enabled language,
+then purges all cached HTTP responses. `scripts/post-deploy.sh` (scaffolded by
+`iqual/drupal-nuxt-platform`) calls it from the Platform.sh `post_deploy` hook.
+
+```bash
+ddev drush icms:post-deploy
+ddev drush icms:post-deploy --skip=purge   # schema warming only
+ddev drush icms:warm-graphql-schema        # the warming step on its own
+```
+
 ### Generate Project Translations Module
 
 Generate a dedicated module for project-specific translations:
