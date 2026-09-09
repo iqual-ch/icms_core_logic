@@ -1583,3 +1583,109 @@ function icms_core_logic_install_webform($config_name, $module_name) {
     return FALSE;
   }
 }
+
+/**
+ * Add the anchor and anchor navigation paragraphs.
+ *
+ * The anchor marks a scroll target inside the content, the anchor navigation
+ * lists every anchor on the page as a sticky bar. Both are content-agnostic,
+ * so they are allowed on every node type that has a paragraphs field.
+ */
+function icms_core_logic_update_9051() {
+  $messages = [];
+
+  $config_entities = [
+    'paragraphs_type' => [
+      'paragraphs.paragraphs_type.icms_layout_anchor',
+      'paragraphs.paragraphs_type.icms_layout_anchor_navigation',
+    ],
+    'field_config' => [
+      'field.field.paragraph.icms_layout_anchor.field_icms_link',
+    ],
+    'entity_form_display' => [
+      'core.entity_form_display.paragraph.icms_layout_anchor.default',
+    ],
+    'entity_view_display' => [
+      'core.entity_view_display.paragraph.icms_layout_anchor.default',
+    ],
+    'base_field_override' => [
+      'core.base_field_override.paragraph.icms_layout_anchor_navigation.created',
+      'core.base_field_override.paragraph.icms_layout_anchor_navigation.status',
+    ],
+    'language_content_settings' => [
+      'language.content_settings.paragraph.icms_layout_anchor',
+      'language.content_settings.paragraph.icms_layout_anchor_navigation',
+    ],
+  ];
+
+  $created = 0;
+  foreach ($config_entities as $entity_type_id => $config_names) {
+    foreach ($config_names as $config_name) {
+      $created += (int) _icms_core_logic_import_config_entity($config_name, $entity_type_id, '9051');
+    }
+  }
+  if ($created > 0) {
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
+    $messages[] = "Installed $created config entities for the anchor paragraphs.";
+  }
+
+  // Allow both paragraphs wherever the other layouts are allowed. The weights
+  // put them at the top of the drag and drop list, next to each other.
+  $weights = [
+    'icms_layout_anchor' => -57,
+    'icms_layout_anchor_navigation' => -56,
+  ];
+
+  $enabled = [];
+  foreach (array_keys(NodeType::loadMultiple()) as $type) {
+    $field = FieldConfig::loadByName('node', $type, 'field_icms_paragraphs');
+    if (!$field) {
+      continue;
+    }
+
+    $settings = $field->getSetting('handler_settings');
+    $changed = FALSE;
+    foreach ($weights as $bundle => $weight) {
+      if (isset($settings['target_bundles'][$bundle])) {
+        continue;
+      }
+      $settings['target_bundles'][$bundle] = $bundle;
+      $settings['target_bundles_drag_drop'][$bundle] = [
+        'weight' => $weight,
+        'enabled' => TRUE,
+      ];
+      $changed = TRUE;
+    }
+
+    if ($changed) {
+      $field->setSetting('handler_settings', $settings)->save();
+      $enabled[] = $type;
+    }
+  }
+  if ($enabled) {
+    $messages[] = 'Allowed the anchor paragraphs on: ' . implode(', ', $enabled) . '.';
+  }
+
+  // Expose the paragraph types in the GraphQL schema, the frontend queries
+  // them through the shared paragraph fragment.
+  $graphql = \Drupal::configFactory()->getEditable('graphql.graphql_servers.graphql');
+  if (!$graphql->isNew()) {
+    $changed = FALSE;
+    foreach (array_keys($weights) as $bundle) {
+      $key = 'schema_configuration.core_composable.bundles.paragraph.' . $bundle . '.enabled';
+      if (!$graphql->get($key)) {
+        $graphql->set($key, TRUE);
+        $changed = TRUE;
+      }
+    }
+    if ($changed) {
+      $graphql->save();
+      \Drupal::service('config.factory')->reset('graphql.graphql_servers.graphql');
+      $messages[] = 'Exposed the anchor paragraphs in the GraphQL schema.';
+    }
+  }
+
+  return implode(' ', $messages) ?: (string) new TranslatableMarkup('The anchor paragraphs were already present.');
+}

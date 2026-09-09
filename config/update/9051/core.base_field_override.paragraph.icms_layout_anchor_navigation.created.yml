@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - paragraphs.paragraphs_type.icms_layout_anchor_navigation
+id: paragraph.icms_layout_anchor_navigation.created
+field_name: created
+entity_type: paragraph
+bundle: icms_layout_anchor_navigation
+label: 'Authored on'
+description: 'The time that the Paragraph was created.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: created

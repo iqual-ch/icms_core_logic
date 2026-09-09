@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.icms_layout_anchor.field_icms_link
+    - paragraphs.paragraphs_type.icms_layout_anchor
+  module:
+    - link
+id: paragraph.icms_layout_anchor.default
+targetEntityType: paragraph
+bundle: icms_layout_anchor
+mode: default
+content:
+  field_icms_link:
+    type: link
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  search_api_excerpt: true

@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.icms_layout_anchor.field_icms_link
+    - paragraphs.paragraphs_type.icms_layout_anchor
+  module:
+    - linkit
+id: paragraph.icms_layout_anchor.default
+targetEntityType: paragraph
+bundle: icms_layout_anchor
+mode: default
+content:
+  field_icms_link:
+    type: linkit
+    weight: 2
+    region: content
+    settings:
+      placeholder_url: ''
+      placeholder_title: ''
+      linkit_profile: content
+      linkit_auto_link_text: false
+    third_party_settings: {  }
+  translation:
+    weight: 10
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  status: true
