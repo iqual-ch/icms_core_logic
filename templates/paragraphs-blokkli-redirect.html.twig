@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Overrides paragraphs_blokkli's redirect page for the backend domain.
+ *
+ * The page is loaded in an iframe of the blökkli editor; with the frontend on
+ * another origin, postMessage() must be told to deliver cross-origin.
+ */
+#}
+<script>
+  window.parent.postMessage({ event: 'BLOKKLI', action: 'SAVE' }, '*');
+</script>
+
+<div class="paragraphs-blokkli-redirect-page">
+  <div class="paragraphs-blokkli-loading">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
