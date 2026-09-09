@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\language\Entity\ContentLanguageSettings;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -1688,4 +1689,109 @@ function icms_core_logic_update_9051() {
   }
 
   return implode(' ', $messages) ?: (string) new TranslatableMarkup('The anchor paragraphs were already present.');
+}
+
+/**
+ * Enable the blökkli paragraph library and fragments for editors.
+ *
+ * Both features shipped with the product from the start (paragraphs_library,
+ * paragraphs_blokkli_library and paragraphs_blokkli_fragments are installed,
+ * the from_library and blokkli_fragment paragraph types exist) but were never
+ * usable: no paragraph type could be promoted to the library, the wrapper
+ * bundles were disabled on every host field and editors lacked the library
+ * permissions. Top-level layout paragraphs (icms_layout_*) become reusable —
+ * element paragraphs stay bound to their parent layout — and library items are
+ * made translatable so a reusable block can carry one text per site language.
+ */
+function icms_core_logic_update_9052() {
+  $messages = [];
+
+  // Allow promoting every top-level layout paragraph to the library.
+  $promotable = [];
+  /** @var \Drupal\paragraphs\Entity\ParagraphsType $type */
+  foreach (\Drupal::entityTypeManager()->getStorage('paragraphs_type')->loadMultiple() as $type) {
+    if (!str_starts_with($type->id(), 'icms_layout_')) {
+      continue;
+    }
+    if ($type->getThirdPartySetting('paragraphs_library', 'allow_library_conversion', FALSE)) {
+      continue;
+    }
+    $type->setThirdPartySetting('paragraphs_library', 'allow_library_conversion', TRUE)->save();
+    $promotable[] = $type->id();
+  }
+  if ($promotable) {
+    $messages[] = 'Allowed promoting to the library: ' . implode(', ', $promotable) . '.';
+  }
+
+  // Allow placing library items and fragments wherever layouts are allowed.
+  $wrappers = ['blokkli_fragment' => -56, 'from_library' => -55];
+  $enabled = [];
+  foreach (array_keys(NodeType::loadMultiple()) as $node_type) {
+    $field = FieldConfig::loadByName('node', $node_type, 'field_icms_paragraphs');
+    if (!$field) {
+      continue;
+    }
+    $settings = $field->getSetting('handler_settings');
+    $changed = FALSE;
+    foreach ($wrappers as $bundle => $weight) {
+      if (isset($settings['target_bundles'][$bundle])) {
+        continue;
+      }
+      $settings['target_bundles'][$bundle] = $bundle;
+      $settings['target_bundles_drag_drop'][$bundle] = [
+        'weight' => $settings['target_bundles_drag_drop'][$bundle]['weight'] ?? $weight,
+        'enabled' => TRUE,
+      ];
+      $changed = TRUE;
+    }
+    if ($changed) {
+      $field->setSetting('handler_settings', $settings)->save();
+      $enabled[] = $node_type;
+    }
+  }
+  if ($enabled) {
+    $messages[] = 'Allowed library items and fragments on: ' . implode(', ', $enabled) . '.';
+  }
+
+  // Library items get one translation per language; the referenced paragraphs
+  // are translated through the regular blökkli translate flow.
+  if (\Drupal::moduleHandler()->moduleExists('content_translation')) {
+    $config = ContentLanguageSettings::loadByEntityTypeBundle('paragraphs_library_item', 'paragraphs_library_item');
+    if (!$config->getThirdPartySetting('content_translation', 'enabled', FALSE)) {
+      $config
+        ->setThirdPartySetting('content_translation', 'enabled', TRUE)
+        ->setThirdPartySetting('content_translation', 'bundle_settings', ['untranslatable_fields_hide' => '1'])
+        ->save();
+      $messages[] = 'Made library items translatable.';
+    }
+  }
+
+  // Editors manage the library: the admin listing needs the administer
+  // permission, promoting and editing need the item permissions.
+  $permissions = [
+    'administer paragraphs library',
+    'create paragraph library item',
+    'edit paragraph library item',
+  ];
+  $granted = [];
+  foreach (['content_editor', 'administrator_client'] as $role_id) {
+    $role = Role::load($role_id);
+    if (!$role) {
+      continue;
+    }
+    $missing = array_diff($permissions, $role->getPermissions());
+    if (!$missing) {
+      continue;
+    }
+    foreach ($missing as $permission) {
+      $role->grantPermission($permission);
+    }
+    $role->save();
+    $granted[] = $role_id;
+  }
+  if ($granted) {
+    $messages[] = 'Granted the paragraph library permissions to: ' . implode(', ', $granted) . '.';
+  }
+
+  return implode(' ', $messages) ?: (string) new TranslatableMarkup('The paragraph library was already enabled.');
 }
