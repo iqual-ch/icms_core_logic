@@ -2,24 +2,26 @@ langcode: en
 status: true
 dependencies:
   config:
-    - field.field.paragraph.icms_layout_anchor.field_icms_link
+    - field.field.paragraph.icms_layout_anchor.field_icms_anchor
+    - field.field.paragraph.icms_layout_anchor.field_icms_title
     - paragraphs.paragraphs_type.icms_layout_anchor
-  module:
-    - link
 id: paragraph.icms_layout_anchor.default
 targetEntityType: paragraph
 bundle: icms_layout_anchor
 mode: default
 content:
-  field_icms_link:
-    type: link
+  field_icms_anchor:
+    type: string
     label: above
     settings:
-      trim_length: 80
-      url_only: false
-      url_plain: false
-      rel: ''
-      target: ''
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_icms_title:
+    type: basic_string
+    label: above
+    settings: {  }
     third_party_settings: {  }
     weight: 0
     region: content

@@ -2,24 +2,29 @@ langcode: en
 status: true
 dependencies:
   config:
-    - field.field.paragraph.icms_layout_anchor.field_icms_link
+    - field.field.paragraph.icms_layout_anchor.field_icms_anchor
+    - field.field.paragraph.icms_layout_anchor.field_icms_title
     - paragraphs.paragraphs_type.icms_layout_anchor
-  module:
-    - linkit
 id: paragraph.icms_layout_anchor.default
 targetEntityType: paragraph
 bundle: icms_layout_anchor
 mode: default
 content:
-  field_icms_link:
-    type: linkit
-    weight: 2
+  field_icms_anchor:
+    type: string_textfield
+    weight: 1
     region: content
     settings:
-      placeholder_url: ''
-      placeholder_title: ''
-      linkit_profile: content
-      linkit_auto_link_text: false
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_icms_title:
+    type: string_textarea
+    weight: 0
+    region: content
+    settings:
+      rows: 2
+      placeholder: ''
     third_party_settings: {  }
   translation:
     weight: 10

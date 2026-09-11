@@ -1588,20 +1588,25 @@ function icms_core_logic_install_webform($config_name, $module_name) {
 /**
  * Add the anchor and anchor navigation paragraphs.
  *
- * The anchor marks a scroll target inside the content, the anchor navigation
- * lists every anchor on the page as a sticky bar. Both are content-agnostic,
- * so they are allowed on every node type that has a paragraphs field.
+ * The anchor marks a scroll target inside the content with a label and an
+ * optional anchor id, the anchor navigation lists every anchor on the page as
+ * a sticky bar. Both are content-agnostic, so they are allowed on every node
+ * type that has a paragraphs field.
  */
 function icms_core_logic_update_9051() {
   $messages = [];
 
   $config_entities = [
+    'field_storage_config' => [
+      'field.storage.paragraph.field_icms_anchor',
+    ],
     'paragraphs_type' => [
       'paragraphs.paragraphs_type.icms_layout_anchor',
       'paragraphs.paragraphs_type.icms_layout_anchor_navigation',
     ],
     'field_config' => [
-      'field.field.paragraph.icms_layout_anchor.field_icms_link',
+      'field.field.paragraph.icms_layout_anchor.field_icms_title',
+      'field.field.paragraph.icms_layout_anchor.field_icms_anchor',
     ],
     'entity_form_display' => [
       'core.entity_form_display.paragraph.icms_layout_anchor.default',
@@ -1669,11 +1674,16 @@ function icms_core_logic_update_9051() {
     $messages[] = 'Allowed the anchor paragraphs on: ' . implode(', ', $enabled) . '.';
   }
 
-  // Expose the paragraph types in the GraphQL schema, the frontend queries
-  // them through the shared paragraph fragment.
+  // Expose the paragraph types and the anchor field in the GraphQL schema,
+  // the frontend queries them through the shared paragraph fragment.
   $graphql = \Drupal::configFactory()->getEditable('graphql.graphql_servers.graphql');
   if (!$graphql->isNew()) {
     $changed = FALSE;
+    $key = 'schema_configuration.core_composable.fields.paragraph.field_icms_anchor';
+    if ($graphql->get($key) !== 'field_icms_anchor') {
+      $graphql->set($key, 'field_icms_anchor');
+      $changed = TRUE;
+    }
     foreach (array_keys($weights) as $bundle) {
       $key = 'schema_configuration.core_composable.bundles.paragraph.' . $bundle . '.enabled';
       if (!$graphql->get($key)) {

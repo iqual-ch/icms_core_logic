@@ -2,25 +2,22 @@ langcode: en
 status: true
 dependencies:
   config:
-    - field.storage.paragraph.field_icms_link
+    - field.storage.paragraph.field_icms_title
     - paragraphs.paragraphs_type.icms_layout_anchor
   module:
-    - link
     - tmgmt_content
 third_party_settings:
   tmgmt_content:
     excluded: false
-id: paragraph.icms_layout_anchor.field_icms_link
-field_name: field_icms_link
+id: paragraph.icms_layout_anchor.field_icms_title
+field_name: field_icms_title
 entity_type: paragraph
 bundle: icms_layout_anchor
-label: Link
-description: ''
+label: Label
+description: 'Shown as the link text in the anchor navigation.'
 required: true
 translatable: true
 default_value: {  }
 default_value_callback: ''
-settings:
-  title: 2
-  link_type: 17
-field_type: link
+settings: {  }
+field_type: string_long
