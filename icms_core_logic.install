@@ -1805,3 +1805,115 @@ function icms_core_logic_update_9052() {
 
   return implode(' ', $messages) ?: (string) new TranslatableMarkup('The paragraph library was already enabled.');
 }
+
+/**
+ * Show the latest revision state in the content overview.
+ *
+ * The coloured dot in front of each title in /admin/content was rendered from
+ * node_field_data.status, which is the publication status of the default
+ * (live) revision. With content moderation that is not what editors see: a node
+ * that is published and then edited keeps a published default revision and
+ * carries the draft as a pending revision, so the overview said "published"
+ * while the node form said "draft". The dot now comes from blokkli_starterkit's
+ * latest_moderation_state field, which reports the state of the latest revision
+ * and falls back to the publication status for unmoderated content.
+ *
+ * Only views that still carry the shipped title rewrite are touched, so a
+ * customised content overview is left alone.
+ */
+function icms_core_logic_update_9053() {
+  if (!\Drupal::moduleHandler()->moduleExists('blokkli_starterkit')) {
+    return (string) new TranslatableMarkup('Skipped: blokkli_starterkit is not installed.');
+  }
+
+  $view = \Drupal::entityTypeManager()->getStorage('view')->load('content');
+  if (!$view) {
+    return (string) new TranslatableMarkup('Skipped: the content view does not exist.');
+  }
+
+  $display = $view->get('display');
+  $fields = $display['default']['display_options']['fields'] ?? [];
+
+  if (isset($fields['latest_moderation_state'])) {
+    return (string) new TranslatableMarkup('The content overview already shows the latest revision state.');
+  }
+
+  // The dot is printed through the title field, so both have to be there and
+  // the title rewrite has to be one this update knows how to replace.
+  $known_rewrites = ['{{ status }} {{ title }}', '{{ moderation_state }} {{ title }}'];
+  $rewrite = $fields['title']['alter']['text'] ?? NULL;
+  if (!isset($fields['title']) || !in_array($rewrite, $known_rewrites, TRUE)) {
+    return (string) new TranslatableMarkup('Skipped: the content overview has a customised title field.');
+  }
+
+  $definition = [
+    'id' => 'latest_moderation_state',
+    'table' => 'node_field_data',
+    'field' => 'latest_moderation_state_field',
+    'relationship' => 'none',
+    'group_type' => 'group',
+    'admin_label' => '',
+    'entity_type' => 'node',
+    'plugin_id' => 'latest_moderation_state_field',
+    'label' => 'Moderationsstatus',
+    'exclude' => TRUE,
+    'alter' => [
+      'alter_text' => TRUE,
+      'text' => '<div class="liip-views-status is-{{ latest_moderation_state }}"></div>',
+      'make_link' => FALSE,
+      'path' => '',
+      'absolute' => FALSE,
+      'external' => FALSE,
+      'replace_spaces' => FALSE,
+      'path_case' => 'none',
+      'trim_whitespace' => FALSE,
+      'alt' => '',
+      'rel' => '',
+      'link_class' => '',
+      'prefix' => '',
+      'suffix' => '',
+      'target' => '',
+      'nl2br' => FALSE,
+      'max_length' => 0,
+      'word_boundary' => TRUE,
+      'ellipsis' => TRUE,
+      'more_link' => FALSE,
+      'more_link_text' => '',
+      'more_link_path' => '',
+      'strip_tags' => FALSE,
+      'trim' => FALSE,
+      'preserve_tags' => '',
+      'html' => FALSE,
+    ],
+    'element_type' => '',
+    'element_class' => '',
+    'element_label_type' => '',
+    'element_label_class' => '',
+    'element_label_colon' => FALSE,
+    'element_wrapper_type' => '',
+    'element_wrapper_class' => '',
+    'element_default_classes' => TRUE,
+    'empty' => '',
+    'hide_empty' => FALSE,
+    'empty_zero' => FALSE,
+    'hide_alter_empty' => TRUE,
+  ];
+
+  // Views only exposes a field as a token to fields rendered after it, so the
+  // new field has to sit in front of the title it is printed through.
+  $reordered = [];
+  foreach ($fields as $id => $field) {
+    if ($id === 'title') {
+      $reordered['latest_moderation_state'] = $definition;
+    }
+    $reordered[$id] = $field;
+  }
+  $reordered['title']['alter']['text'] = '{{ latest_moderation_state }} {{ title }}';
+
+  // The old status field keeps its own rewrite but is no longer printed.
+  $display['default']['display_options']['fields'] = $reordered;
+  $view->set('display', $display);
+  $view->save();
+
+  return (string) new TranslatableMarkup('The content overview now shows the moderation state of the latest revision.');
+}
