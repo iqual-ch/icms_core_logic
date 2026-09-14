@@ -2120,3 +2120,124 @@ function icms_core_logic_update_9056() {
 
   return (string) new TranslatableMarkup('Imported the default texts, adding the spam protection message.');
 }
+
+/**
+ * Let editors choose the original language of pages and media.
+ *
+ * Content was always created in the site default language; any other
+ * language could only be added as a translation. The language selector is
+ * now enabled on the page content type and on all media types, and moved out
+ * of the "Content" tab of the page form so editors find it when creating a
+ * page. Bundles do the same for their node types in their own logic module.
+ */
+function icms_core_logic_update_9057() {
+  $messages = _icms_core_logic_enable_original_language_selection('node', 'icms_page');
+  foreach (['audio', 'document', 'icon', 'image', 'remote_video', 'video'] as $media_type) {
+    $messages = array_merge($messages, _icms_core_logic_enable_original_language_selection('media', $media_type));
+  }
+
+  if (!$messages) {
+    return (string) new TranslatableMarkup('The original language of pages and media was already selectable.');
+  }
+  return implode(' ', $messages);
+}
+
+/**
+ * Lets editors choose the original language when creating content of a bundle.
+ *
+ * Enables the language selector in the bundle's content language settings and
+ * makes it findable in the default form display: shown where it was hidden,
+ * and on forms with the ICMS tab group placed above the tabs, together with
+ * the translation details, instead of inside a tab. The form display is only
+ * rearranged while the selector still sits at or below the tab group, so a
+ * project that already moved it keeps its layout. Weights of the other
+ * top-level elements shift by two to make room, preserving their order.
+ *
+ * @param string $entity_type_id
+ *   The entity type id, e.g. "node".
+ * @param string $bundle
+ *   The bundle, e.g. "icms_page".
+ *
+ * @return string[]
+ *   What changed; empty when nothing needed changing.
+ */
+function _icms_core_logic_enable_original_language_selection(string $entity_type_id, string $bundle): array {
+  $messages = [];
+  $label = "$entity_type_id $bundle";
+
+  if (!\Drupal::moduleHandler()->moduleExists('language')) {
+    return [(string) new TranslatableMarkup('Skipped @label: the language module is not installed.', ['@label' => $label])];
+  }
+
+  $settings = ContentLanguageSettings::loadByEntityTypeBundle($entity_type_id, $bundle);
+  if ($settings->isNew()) {
+    return [(string) new TranslatableMarkup('Skipped @label: it has no content language settings.', ['@label' => $label])];
+  }
+  if (!$settings->isLanguageAlterable()) {
+    $settings->setLanguageAlterable(TRUE)->save();
+    $messages[] = (string) new TranslatableMarkup('Enabled the language selector for @label.', ['@label' => $label]);
+  }
+
+  $display = EntityFormDisplay::load("$entity_type_id.$bundle.default");
+  if (!$display) {
+    return $messages;
+  }
+  $changed = FALSE;
+
+  // The language components must be top-level elements, not tab content.
+  $groups = $display->getThirdPartySettings('field_group');
+  foreach ($groups as $name => $group) {
+    foreach (['langcode', 'translation'] as $key) {
+      $index = array_search($key, $group['children'] ?? [], TRUE);
+      if ($index !== FALSE) {
+        array_splice($group['children'], $index, 1);
+        $groups[$name] = $group;
+        $display->setThirdPartySetting('field_group', $name, $group);
+        $changed = TRUE;
+      }
+    }
+  }
+
+  // The selector must be visible.
+  $langcode = $display->getComponent('langcode');
+  if (!$langcode) {
+    $langcode = [
+      'type' => 'language_select',
+      'weight' => 2,
+      'region' => 'content',
+      'settings' => ['include_locked' => TRUE],
+    ];
+    $display->setComponent('langcode', $langcode);
+    $changed = TRUE;
+  }
+
+  // On forms with the ICMS tab group, the selector goes above the tabs.
+  $tabs = $groups['group_tabs'] ?? NULL;
+  if ($tabs && $tabs['weight'] <= $langcode['weight']) {
+    $grouped = array_merge([], ...array_map(static fn (array $group) => $group['children'] ?? [], array_values($groups)));
+    foreach ($display->getComponents() as $name => $component) {
+      if (in_array($name, ['langcode', 'translation'], TRUE) || in_array($name, $grouped, TRUE) || $component['weight'] < 0) {
+        continue;
+      }
+      $display->setComponent($name, ['weight' => $component['weight'] + 2] + $component);
+    }
+    foreach ($groups as $name => $group) {
+      if (($group['parent_name'] ?? '') === '' && $group['weight'] >= 0) {
+        $group['weight'] += 2;
+        $display->setThirdPartySetting('field_group', $name, $group);
+      }
+    }
+    $display->setComponent('langcode', ['weight' => 1] + $langcode);
+    if ($translation = $display->getComponent('translation')) {
+      $display->setComponent('translation', ['weight' => 0] + $translation);
+    }
+    $changed = TRUE;
+  }
+
+  if ($changed) {
+    $display->save();
+    $messages[] = (string) new TranslatableMarkup('Exposed the language selector on the @label form.', ['@label' => $label]);
+  }
+
+  return $messages;
+}
