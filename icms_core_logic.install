@@ -1917,3 +1917,17 @@ function icms_core_logic_update_9053() {
 
   return (string) new TranslatableMarkup('The content overview now shows the moderation state of the latest revision.');
 }
+
+/**
+ * Enable single_language_url_prefix to keep URL prefixes on monolingual sites.
+ */
+function icms_core_logic_update_9054() {
+  // Core drops the language path processor once only one language is left, so
+  // the frontend's prefixed routes (/en/...) stop resolving. The module keeps
+  // the prefix on single-language sites and is a no-op on multilingual ones.
+  if (\Drupal::moduleHandler()->moduleExists('single_language_url_prefix')) {
+    return (string) new TranslatableMarkup('The single_language_url_prefix module is already enabled.');
+  }
+  \Drupal::service('module_installer')->install(['single_language_url_prefix']);
+  return (string) new TranslatableMarkup('Enabled the single_language_url_prefix module.');
+}
