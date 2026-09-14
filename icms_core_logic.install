@@ -1103,7 +1103,7 @@ function icms_core_logic_update_9049() {
     }
   }
 
-  return (string) new TranslatableMarkup($log ?: 'No changes were needed.');
+  return $log ?: (string) new TranslatableMarkup('No changes were needed.');
 }
 
 /**
@@ -1204,7 +1204,7 @@ function icms_core_logic_update_9047() {
     }
   }
 
-  return (string) new TranslatableMarkup(implode(' ', $messages));
+  return implode(' ', $messages);
 }
 
 /**
@@ -1301,7 +1301,7 @@ function icms_core_logic_update_9048() {
     }
   }
 
-  return (string) new TranslatableMarkup(implode(' ', $messages) ?: 'field_icms_weight was already present everywhere.');
+  return implode(' ', $messages) ?: (string) new TranslatableMarkup('field_icms_weight was already present everywhere.');
 }
 
 /**
