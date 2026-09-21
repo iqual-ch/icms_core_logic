@@ -2241,3 +2241,55 @@ function _icms_core_logic_enable_original_language_selection(string $entity_type
 
   return $messages;
 }
+
+/**
+ * Serve links to media documents from their stable /media/{id} URL.
+ *
+ * Links to a document (picked with linkit, in a link field or in rich text)
+ * pointed at the file itself, e.g. /sites/default/files/2026-09/foo.pdf. That
+ * URL changes whenever the file behind the media entity is replaced, so every
+ * link a visitor had saved or shared broke. The media_download module turns
+ * the media canonical route into a file response, which makes /media/{id} a
+ * permanent URL that always serves the current file.
+ */
+function icms_core_logic_update_9058() {
+  $log = [];
+
+  if (!\Drupal::moduleHandler()->moduleExists('media_download')) {
+    \Drupal::service('module_installer')->install(['media_download']);
+    $log[] = (string) new TranslatableMarkup('Installed the media_download module.');
+  }
+
+  // Insert the canonical media URL instead of the file URL when an editor
+  // picks a document in a linkit autocomplete.
+  foreach (\Drupal::entityTypeManager()->getStorage('linkit_profile')->loadMultiple() as $profile) {
+    $changed = FALSE;
+    foreach ($profile->getMatchers() as $matcher) {
+      $configuration = $matcher->getConfiguration();
+      if (($configuration['settings']['substitution_type'] ?? '') === 'media') {
+        $configuration['settings']['substitution_type'] = 'canonical';
+        $profile->setMatcherConfig($matcher->getUuid(), $configuration);
+        $changed = TRUE;
+      }
+    }
+    if ($changed) {
+      $profile->save();
+      $log[] = (string) new TranslatableMarkup('Linkit profile "@profile" now links media to their canonical URL.', ['@profile' => $profile->id()]);
+    }
+  }
+
+  // Links already stored in rich text need no migration: the Linkit filter
+  // resolves the media entity on every render, so switching its substitution
+  // updates published content without touching the stored markup.
+  foreach (\Drupal::entityTypeManager()->getStorage('filter_format')->loadMultiple() as $format) {
+    $filters = $format->get('filters');
+    if (!isset($filters['linkit']) || ($filters['linkit']['settings']['media_substitution'] ?? '') === 'canonical') {
+      continue;
+    }
+    $filters['linkit']['settings']['media_substitution'] = 'canonical';
+    $format->set('filters', $filters)->save();
+    $log[] = (string) new TranslatableMarkup('Text format "@format" now renders media links as canonical URLs.', ['@format' => $format->id()]);
+  }
+
+  return implode(' ', $log) ?: (string) new TranslatableMarkup('Media links already use the canonical media URL.');
+}
