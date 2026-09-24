@@ -1933,183 +1933,23 @@ function icms_core_logic_update_9054() {
 }
 
 /**
- * Use the email address as the username (ICMS-714).
+ * Install email_registration (ICMS-714).
  *
- * Installs email_registration, then renames every account that has an email
- * address so the two match. From here on they stay matched: the address is the
- * login name and no separate username is maintained anywhere.
+ * Existing accounts are not renamed: the username people have saved in their
+ * password manager keeps working. Only accounts created from now on are named
+ * after their address, see icms_core_logic_email_registration_name_alter().
  *
- * Accounts without an email address keep the username they have — there is
- * nothing to derive one from. Addresses too long for the username column are
- * shortened; those accounts still log in with the full address, because
- * email_registration authenticates through user_load_by_mail().
+ * The setting that lets the username keep working is applied by
+ * icms_core_logic_update_9059(): an earlier development version of this
+ * update renamed every account, and sites that ran it skip this hook.
  *
  * @see icms_core_logic_email_registration_name_alter()
- * @see icms_core_logic_username_max_length()
+ * @see icms_core_logic_update_9059()
  */
-function icms_core_logic_update_9055(&$sandbox) {
-  if (!isset($sandbox['max'])) {
-    \Drupal::service('module_installer')->install(['email_registration']);
+function icms_core_logic_update_9055() {
+  \Drupal::service('module_installer')->install(['email_registration']);
 
-    // Everyone but the anonymous user, oldest first so uid 1 is dealt with
-    // while the log is still short.
-    $sandbox['uids'] = \Drupal::entityQuery('user')
-      ->accessCheck(FALSE)
-      ->condition('uid', 0, '>')
-      ->sort('uid')
-      ->execute();
-    $sandbox['uids'] = array_values($sandbox['uids']);
-    $sandbox['max'] = count($sandbox['uids']);
-    $sandbox['progress'] = 0;
-    $sandbox['renamed'] = 0;
-    $sandbox['skipped'] = 0;
-
-    icms_core_logic_report_username_conflicts();
-    icms_core_logic_seed_login_translations();
-  }
-
-  $storage = \Drupal::entityTypeManager()->getStorage('user');
-  $slice = array_slice($sandbox['uids'], $sandbox['progress'], 50);
-
-  foreach ($storage->loadMultiple($slice) as $account) {
-    $mail = (string) $account->getEmail();
-
-    if ($mail === '') {
-      // The uid is enough to find the account, and the username it keeps is
-      // often an address itself — a deployment log that reaches dblog and
-      // syslog is the wrong place for it.
-      \Drupal::logger('icms_core_logic')->warning(
-        'ICMS-714: kept the username of user @uid, the account has no email address.',
-        ['@uid' => $account->id()]
-      );
-      $sandbox['skipped']++;
-      continue;
-    }
-
-    $username = icms_core_logic_username_for_mail($mail);
-
-    if ($account->getAccountName() !== $username) {
-      $account->setUsername($username)->save();
-      $sandbox['renamed']++;
-    }
-  }
-
-  $sandbox['progress'] += count($slice);
-  $sandbox['#finished'] = $sandbox['max'] ? $sandbox['progress'] / $sandbox['max'] : 1;
-
-  if ($sandbox['#finished'] < 1) {
-    return NULL;
-  }
-
-  return (string) new TranslatableMarkup(
-    'Renamed @renamed of @max accounts to their email address; @skipped had none.',
-    [
-      '@renamed' => $sandbox['renamed'],
-      '@max' => $sandbox['max'],
-      '@skipped' => $sandbox['skipped'],
-    ]
-  );
-}
-
-/**
- * Logs the accounts that cannot both keep their address and get a new username.
- *
- * Two accounts sharing an address, or two long addresses that agree up to the
- * length a stored username may use, collide on the unique username column;
- * email_registration_unique_username() resolves that by appending a suffix,
- * which silently leaves one of them with a username that is not their address.
- * Naming them up front makes that visible in the deployment log instead of
- * leaving it to be discovered when someone cannot log in.
- *
- * The comparison length comes from icms_core_logic_username_max_length() so the
- * report cannot drift from what the rename actually stores.
- *
- * This is the one message that names an address rather than only a uid: it fires
- * for the handful of conflicting accounts, not for every account, and without
- * the address there is nothing for whoever reads it to act on.
- */
-function icms_core_logic_report_username_conflicts(): void {
-  $rows = \Drupal::database()->query('
-    SELECT GROUP_CONCAT(uid ORDER BY uid) AS uids, LOWER(SUBSTRING(mail, 1, :max)) AS prefix
-    FROM {users_field_data}
-    WHERE default_langcode = 1 AND uid > 0 AND mail IS NOT NULL AND mail <> \'\'
-    GROUP BY prefix
-    HAVING COUNT(*) > 1
-  ', [':max' => icms_core_logic_username_max_length()])->fetchAll();
-
-  foreach ($rows as $row) {
-    \Drupal::logger('icms_core_logic')->warning(
-      'ICMS-714: users @uids share the email address %prefix; only one of them can use it as a username, the others get a numbered suffix and have to log in with the address itself.',
-      ['@uids' => $row->uids, '%prefix' => $row->prefix]
-    );
-  }
-}
-
-/**
- * Fills the gaps in the Italian translation of the login and password forms.
- *
- * The email_registration module relabels those forms, and localize.drupal.org
- * has German and French for its strings but not Italian — which would leave
- * Italian editors and members looking at English on the one page everyone has
- * to pass through. The strings are written as customized so a later remote
- * import leaves them alone, and existing translations are never overwritten.
- */
-function icms_core_logic_seed_login_translations(): void {
-  if (!\Drupal::moduleHandler()->moduleExists('locale')) {
-    return;
-  }
-
-  $translations = [
-    'Enter your email address.' => [
-      'it' => 'Inserisci il tuo indirizzo e-mail.',
-    ],
-    'Enter the password that accompanies your email address.' => [
-      'it' => 'Inserisci la password associata al tuo indirizzo e-mail.',
-    ],
-    'Unrecognized email address or password. <a href=":password">Forgot your password?</a>' => [
-      'it' => 'Indirizzo e-mail o password non riconosciuti. <a href=":password">Hai dimenticato la password?</a>',
-    ],
-  ];
-
-  /** @var \Drupal\locale\StringStorageInterface $storage */
-  $storage = \Drupal::service('locale.storage');
-  $installed = \Drupal::languageManager()->getLanguages();
-  $refresh = [];
-
-  foreach ($translations as $source_text => $languages) {
-    $source = $storage->findString(['source' => $source_text, 'context' => '']);
-
-    if (!$source) {
-      $source = $storage->createString(['source' => $source_text, 'context' => ''])->save();
-    }
-
-    foreach ($languages as $langcode => $translation) {
-      // Projects run their own set of languages; writing a translation for one
-      // the site does not have would leave an orphaned row behind.
-      if (!isset($installed[$langcode])) {
-        continue;
-      }
-
-      $existing = $storage->findTranslation(['language' => $langcode, 'lid' => $source->lid]);
-
-      if ($existing && !empty($existing->translation)) {
-        continue;
-      }
-
-      $storage->createTranslation([
-        'lid' => $source->lid,
-        'language' => $langcode,
-        'translation' => $translation,
-        'customized' => LOCALE_CUSTOMIZED,
-      ])->save();
-
-      $refresh[$langcode][] = $source->lid;
-    }
-  }
-
-  foreach ($refresh as $langcode => $lids) {
-    _locale_refresh_translations([$langcode], $lids);
-  }
+  return (string) new TranslatableMarkup('Installed email_registration.');
 }
 
 /**
@@ -2292,4 +2132,26 @@ function icms_core_logic_update_9058() {
   }
 
   return implode(' ', $log) ?: (string) new TranslatableMarkup('Media links already use the canonical media URL.');
+}
+
+/**
+ * Log in with the email address or the username (ICMS-714).
+ *
+ * Turns on email_registration's login_with_username, so the login form looks
+ * the address up first and falls back to the username.
+ *
+ * The setting is exported too. Writing it here as well keeps the username
+ * working between this update and the config import that follows, and covers
+ * the environments that ran the development version of update 9055, which
+ * renamed every account to its address and left the setting off. Those names
+ * cannot be restored; the accounts log in with their address.
+ *
+ * @see icms_core_logic_update_9055()
+ */
+function icms_core_logic_update_9059() {
+  \Drupal::configFactory()->getEditable('email_registration.settings')
+    ->set('login_with_username', TRUE)
+    ->save();
+
+  return (string) new TranslatableMarkup('Accounts log in with their email address or username.');
 }

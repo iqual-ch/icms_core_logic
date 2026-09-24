@@ -41,8 +41,8 @@ function icms_core_logic_content_types_allowed_values(FieldStorageDefinitionInte
  * on their first 58 characters, which is why the reserve stops there rather
  * than growing to fit an arbitrary number.
  *
- * Anything deriving this limit — the conflict report, the upgrade guide's
- * pre-flight query — reads it from here instead of repeating the number.
+ * Anything deriving this limit reads it from here instead of repeating the
+ * number; the upgrade guide quotes it as 58.
  *
  * @return int
  *   The maximum number of characters a stored username may use.
@@ -75,32 +75,52 @@ function icms_core_logic_username_for_mail(string $mail): string {
 /**
  * Implements hook_email_registration_name_alter().
  *
- * ICMS-714: the email address is the username, always and everywhere. This is
- * the single place that decides it, and it runs last — icms_core_logic has
- * weight 50, email_registration has none — so whatever the contrib module
- * derived from the address is replaced by the address itself.
+ * ICMS-714: a new account is named after its email address, and a username
+ * that is the address follows the address when it changes. This is the single
+ * place that decides it, and it runs last — icms_core_logic has weight 50,
+ * email_registration has none — so whatever the contrib module derived from
+ * the address (its local part) is replaced by the address itself. It applies
+ * however the account is created: the registration form, /admin/people/create,
+ * a migration, a seeding script or a client module — the name they pass is
+ * overridden.
  *
- * email_registration ships a submodule, email_registration_username, that also
- * assigns the address. ICMS does not use it: it hands the address over
- * unshortened, and it only keeps an account in sync when the stored username is
- * byte-for-byte the previous address. Anything created programmatically — a
- * migration, a client module, a seeding script — is named once and then drifts,
- * which is exactly the split the ticket sets out to remove. Assigning
- * unconditionally here leaves no such gap.
+ * Any other username is left alone. It predates this rule and is what its
+ * owner has saved in their password manager, so it is never rewritten, not
+ * even when the address changes. An older account whose username already is
+ * its address is treated like a new one — the two are indistinguishable, and
+ * its owner logs in with the address either way. Logging in works with either
+ * value:
+ * email_registration looks the address up first and falls back to the username
+ * (email_registration.settings:login_with_username is on).
  *
- * Accounts without an address keep the username they have: the anonymous user,
- * whose empty name is what makes getDisplayName() fall back to the
- * user.settings:anonymous label, and legacy accounts that predate a required
- * email address.
+ * Following the address matters for exactly the accounts this rule named: were
+ * their username frozen at the first address, it would stay behind as a login
+ * name that someone else's future address could match. Core's installer relies
+ * on the same rule — it creates uid 1 as a placeholder whose name and address
+ * are the same string, then saves the real ones over it, so uid 1 comes out
+ * named after its address like every other account.
+ *
+ * Accounts without an address keep the name they were given: the anonymous
+ * user, whose empty name is what makes getDisplayName() fall back to the
+ * user.settings:anonymous label, and anything created without one.
  *
  * @see icms_core_logic_username_for_mail()
- * @see icms_core_logic_update_9047()
+ * @see icms_core_logic_update_9059()
  */
 function icms_core_logic_email_registration_name_alter(string &$newAccountName, UserInterface $account): void {
   $mail = (string) $account->getEmail();
 
   if ($mail === '') {
     return;
+  }
+
+  if (!$account->isNew()) {
+    $original = $account->getOriginal();
+    $previous = $original ? (string) $original->getEmail() : '';
+
+    if ($previous === '' || $account->getAccountName() !== icms_core_logic_username_for_mail($previous)) {
+      return;
+    }
   }
 
   $newAccountName = icms_core_logic_username_for_mail($mail);
