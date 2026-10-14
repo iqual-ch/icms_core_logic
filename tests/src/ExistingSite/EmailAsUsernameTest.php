@@ -72,8 +72,11 @@ class EmailAsUsernameTest extends ExistingSiteBase {
       'field_user_last_name[0][value]' => 'Account',
     ], 'Create new account');
 
-    $account = user_load_by_mail($address);
-    $this->assertNotFalse($account);
+    $accounts = \Drupal::entityTypeManager()
+      ->getStorage('user')
+      ->loadByProperties(['mail' => $address]);
+    $account = reset($accounts);
+    $this->assertInstanceOf(UserInterface::class, $account);
     $this->markEntityForCleanup($account);
     $this->assertSame($address, $account->getAccountName());
   }
