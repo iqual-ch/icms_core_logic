@@ -6,12 +6,13 @@ namespace Drupal\icms_core_logic;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
+use Drupal\icms_core_logic\Session\SessionConfiguration;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
- * Shares the session cookie between the frontend and the backend domain.
+ * Lets the session cookie of a backend domain cover its frontend domain.
  *
- * Only active when the backend runs on its own domain (see BackendDomain) and
- * services.yml does not configure a cookie domain itself.
+ * @see \Drupal\icms_core_logic\Session\SessionConfiguration
  */
 final class IcmsCoreLogicServiceProvider extends ServiceProviderBase {
 
@@ -19,16 +20,12 @@ final class IcmsCoreLogicServiceProvider extends ServiceProviderBase {
    * {@inheritdoc}
    */
   public function alter(ContainerBuilder $container): void {
-    $cookieDomain = BackendDomain::fromEnvironment()->getCookieDomain();
-    if ($cookieDomain === NULL || !$container->hasParameter('session.storage.options')) {
+    if (!$container->hasDefinition('session_configuration')) {
       return;
     }
-    $options = $container->getParameter('session.storage.options');
-    if (!empty($options['cookie_domain'])) {
-      return;
-    }
-    $options['cookie_domain'] = $cookieDomain;
-    $container->setParameter('session.storage.options', $options);
+    $container->getDefinition('session_configuration')
+      ->setClass(SessionConfiguration::class)
+      ->addArgument(new Reference('icms_core_logic.backend_domain'));
   }
 
 }

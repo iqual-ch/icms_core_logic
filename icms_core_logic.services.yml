@@ -12,9 +12,13 @@ services:
       - { name: drush.command }
   icms_core_logic.backend_domain:
     class: Drupal\icms_core_logic\BackendDomain
-    factory: ['Drupal\icms_core_logic\BackendDomain', 'fromEnvironment']
   icms_core_logic.backend_domain_subscriber:
     class: Drupal\icms_core_logic\EventSubscriber\BackendDomainSubscriber
     arguments: ['@icms_core_logic.backend_domain', '@current_route_match']
     tags:
       - { name: event_subscriber }
+  icms_core_logic.backend_domain_config_override:
+    class: Drupal\icms_core_logic\Config\BackendDomainConfigOverride
+    arguments: ['@icms_core_logic.backend_domain', '@request_stack']
+    tags:
+      - { name: config.factory.override, priority: 50 }

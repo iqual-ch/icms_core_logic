@@ -130,11 +130,12 @@ function icms_core_logic_email_registration_name_alter(string &$newAccountName, 
  * Implements hook_theme_registry_alter().
  *
  * The redirect page of paragraphs_blokkli posts a message to the editor
- * without a target origin, which only reaches a same-origin parent. With the
- * frontend on its own domain, use a template that delivers cross-origin.
+ * without a target origin, which only reaches a same-origin parent. The
+ * blökkli editor runs on the frontend domain, Drupal on its backend domain
+ * (see docs/routing.md), so a template that delivers cross-origin is used.
  */
 function icms_core_logic_theme_registry_alter(array &$theme_registry): void {
-  if (!isset($theme_registry['paragraphs_blokkli_redirect']) || !\Drupal::service('icms_core_logic.backend_domain')->isEnabled()) {
+  if (!isset($theme_registry['paragraphs_blokkli_redirect'])) {
     return;
   }
   $theme_registry['paragraphs_blokkli_redirect']['path'] = \Drupal::service('extension.list.module')->getPath('icms_core_logic') . '/templates';
@@ -148,7 +149,7 @@ function icms_core_logic_theme_registry_alter(array &$theme_registry): void {
  * paragraphs_blokkli must post its updates to the cross-origin editor.
  */
 function icms_core_logic_library_info_alter(array &$libraries, string $extension): void {
-  if ($extension !== 'paragraphs_blokkli' || !isset($libraries['rich-text']['js']['js/rich-text.js']) || !\Drupal::service('icms_core_logic.backend_domain')->isEnabled()) {
+  if ($extension !== 'paragraphs_blokkli' || !isset($libraries['rich-text']['js']['js/rich-text.js'])) {
     return;
   }
   $path = '/' . \Drupal::service('extension.list.module')->getPath('icms_core_logic') . '/js/paragraphs-blokkli-rich-text.js';

@@ -11,6 +11,7 @@ use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\icms_core_logic\BackendDomain;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -22,6 +23,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
  *   which renders them (Drupal's own path, alias and language prefix kept).
  * - Backend responses may be framed by the frontend (the blökkli editor loads
  *   Drupal forms in iframes) and are kept out of search engines.
+ *
+ * Frontend domain, redirect target and framing origin are those of the
+ * request's own host (see BackendDomain).
  */
 final class BackendDomainSubscriber implements EventSubscriberInterface {
 
@@ -67,7 +71,7 @@ final class BackendDomainSubscriber implements EventSubscriberInterface {
     if ($target === NULL) {
       return;
     }
-    $response = new TrustedRedirectResponse($this->backendDomain->getFrontendUrlFor($target), 302);
+    $response = new TrustedRedirectResponse($this->backendDomain->getFrontendUrlFor($request, $target), 302);
     $response->addCacheableDependency((new CacheableMetadata())->addCacheContexts(['url']));
     $event->setResponse($response);
   }
@@ -76,20 +80,67 @@ final class BackendDomainSubscriber implements EventSubscriberInterface {
    * Adjusts headers of responses served on the backend domain.
    */
   public function onResponse(ResponseEvent $event): void {
-    if (!$event->isMainRequest() || !$this->backendDomain->isBackendRequest($event->getRequest())) {
+    if (!$event->isMainRequest()) {
+      return;
+    }
+    $frontend = $this->backendDomain->getFrontendUrl($event->getRequest());
+    if ($frontend === NULL) {
       return;
     }
     $headers = $event->getResponse()->headers;
-    // Allow the frontend to embed backend pages (blökkli forms) — Drupal's
-    // default X-Frame-Options: SAMEORIGIN would block that.
-    $headers->remove('X-Frame-Options');
-    if (!$headers->has('Content-Security-Policy')) {
-      $headers->set('Content-Security-Policy', "frame-ancestors 'self' " . $this->backendDomain->getFrontendUrl());
-    }
+    // The frontend may embed backend pages (blökkli forms). Browsers enforce
+    // the CSP frame-ancestors directive and ignore X-Frame-Options when both
+    // are present, so core's X-Frame-Options: SAMEORIGIN stays as a fallback
+    // for user agents without CSP support.
+    self::mergeFrameAncestors($headers, ["'self'", $frontend]);
     // The public site is the frontend; the backend must not be indexed.
     if (!$headers->has('X-Robots-Tag')) {
       $headers->set('X-Robots-Tag', 'noindex, nofollow');
     }
+  }
+
+  /**
+   * Adds sources to the frame-ancestors directive of the response's CSP.
+   *
+   * A policy without the directive gets it appended, a policy that has one
+   * keeps its sources and gains the missing ones ('none' cannot be combined
+   * and is dropped); without any policy one is set. Report-only policies are
+   * left alone.
+   *
+   * @param \Symfony\Component\HttpFoundation\ResponseHeaderBag $headers
+   *   The response headers.
+   * @param string[] $sources
+   *   The frame-ancestors sources to allow.
+   */
+  public static function mergeFrameAncestors(ResponseHeaderBag $headers, array $sources): void {
+    $policies = $headers->all('Content-Security-Policy');
+    if ($policies === []) {
+      $headers->set('Content-Security-Policy', 'frame-ancestors ' . implode(' ', $sources));
+      return;
+    }
+    $merged = FALSE;
+    foreach ($policies as $i => $policy) {
+      $directives = array_values(array_filter(array_map('trim', explode(';', (string) $policy)), fn(string $directive): bool => $directive !== ''));
+      foreach ($directives as $j => $directive) {
+        if (!preg_match('/^frame-ancestors(?:\s+(.*))?$/i', $directive, $match)) {
+          continue;
+        }
+        $existing = preg_split('/\s+/', trim($match[1] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
+        $existing = array_values(array_filter($existing, fn(string $source): bool => strcasecmp($source, "'none'") !== 0));
+        foreach ($sources as $source) {
+          if (!in_array($source, $existing, TRUE)) {
+            $existing[] = $source;
+          }
+        }
+        $directives[$j] = 'frame-ancestors ' . implode(' ', $existing);
+        $merged = TRUE;
+      }
+      $policies[$i] = implode('; ', $directives);
+    }
+    if (!$merged) {
+      $policies[0] .= '; frame-ancestors ' . implode(' ', $sources);
+    }
+    $headers->set('Content-Security-Policy', $policies);
   }
 
   /**
