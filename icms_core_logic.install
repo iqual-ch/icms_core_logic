@@ -25,11 +25,35 @@ function icms_core_logic_install() {
   // Import default ICMS core texts on module installation.
   icms_core_logic_import_default_texts();
 
+  icms_core_logic_import_translations();
+
   // Attempt to install webform during module installation.
   // Note: During site installation with --existing-config, this may be
   // overwritten by config import. The icms_admin.webform_install_subscriber
   // event subscriber will reinstall webforms after config import completes.
   icms_core_logic_install_webform('webform.webform.contact', 'icms_core_logic');
+}
+
+/**
+ * Imports the module's interface translations (translations/*.po).
+ *
+ * Drupal only imports a module's translations on its own; deployments don't
+ * run locale:update, so the module imports them itself.
+ */
+function icms_core_logic_import_translations(): void {
+  if (!\Drupal::moduleHandler()->moduleExists('locale')) {
+    return;
+  }
+  $module_path = \Drupal::service('extension.list.module')->getPath('icms_core_logic');
+  foreach (\Drupal::languageManager()->getLanguages() as $language) {
+    $file = DRUPAL_ROOT . '/' . $module_path . '/translations/icms_core_logic.' . $language->getId() . '.po';
+    if (!is_file($file)) {
+      continue;
+    }
+    $file_object = (object) ['uri' => $file, 'langcode' => $language->getId()];
+    \Drupal::moduleHandler()->loadInclude('locale', 'bulk.inc');
+    \Drupal\locale\Gettext::fileToDatabase($file_object, ['overwrite_options' => ['not_customized' => TRUE, 'customized' => FALSE]]);
+  }
 }
 
 /**
@@ -2154,4 +2178,39 @@ function icms_core_logic_update_9059() {
     ->save();
 
   return (string) new TranslatableMarkup('Accounts log in with their email address or username.');
+}
+
+/**
+ * Import the interface translations for the blökkli page actions.
+ */
+function icms_core_logic_update_9060() {
+  icms_core_logic_import_translations();
+  return (string) new TranslatableMarkup('Imported the interface translations of icms_core_logic.');
+}
+
+/**
+ * Switch the backend to core's navigation and the new Gin toolbar (ICMS-794).
+ *
+ * The site shell (editors browse the frontend inside the backend, see
+ * docs/routing.md) is built on core's navigation sidebar and top bar. The
+ * navigation module brings its default layout, menus and settings along;
+ * layout_builder is its dependency. Gin's classic toolbar is replaced by the
+ * new navigation.
+ */
+function icms_core_logic_update_9061() {
+  $log = [];
+  $module_handler = \Drupal::moduleHandler();
+  $modules = array_filter(['layout_builder', 'navigation'], static fn(string $module): bool => !$module_handler->moduleExists($module));
+  if ($modules) {
+    \Drupal::service('module_installer')->install(array_values($modules));
+    $log[] = (string) new TranslatableMarkup('Installed the @modules module(s).', ['@modules' => implode(', ', $modules)]);
+  }
+
+  $gin = \Drupal::configFactory()->getEditable('gin.settings');
+  if (!$gin->isNew() && $gin->get('classic_toolbar') !== 'new') {
+    $gin->set('classic_toolbar', 'new')->save();
+    $log[] = (string) new TranslatableMarkup('Switched Gin to the new navigation toolbar.');
+  }
+
+  return $log ? implode(' ', $log) : (string) new TranslatableMarkup('Core navigation and the new Gin toolbar were already in place.');
 }

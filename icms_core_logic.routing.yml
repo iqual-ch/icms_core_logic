@@ -1,0 +1,31 @@
+# The site shell for paths only the frontend serves (search, listings). Reached
+# through SiteShellExceptionSubscriber, which turns a backend 404 for editors
+# into this page; Drupal's router cannot express a catch-all route.
+icms_core_logic.site_shell:
+  path: '/icms/site-shell'
+  defaults:
+    _controller: '\Drupal\icms_core_logic\Controller\SiteShellController::page'
+    _title: 'Website'
+  requirements:
+    _custom_access: '\Drupal\icms_core_logic\Controller\SiteShellController::access'
+    _format: 'html'
+  options:
+    _admin_route: TRUE
+    no_cache: TRUE
+
+# "Edit page content" on nodes: redirects to the frontend's editor. Other
+# entity types blökkli may be enabled for need their own route.
+icms_core_logic.blokkli_edit:
+  path: '/node/{node}/blokkli'
+  defaults:
+    _controller: '\Drupal\icms_core_logic\Controller\BlokkliEditController::open'
+    _title: 'Edit page content'
+  requirements:
+    _custom_access: '\Drupal\icms_core_logic\Controller\BlokkliEditController::access'
+  options:
+    parameters:
+      node:
+        type: entity:node
+    # Never cache the redirect: from the Dynamic Page Cache the controller would
+    # not run, and core would then send a listing's ?destination instead.
+    no_cache: TRUE

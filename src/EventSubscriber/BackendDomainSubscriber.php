@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\icms_core_logic\BackendDomain;
+use Drupal\icms_core_logic\SiteShell;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
@@ -20,7 +21,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * Makes Drupal behave as the backend of a site served on another domain.
  *
  * - Content pages requested on the backend domain redirect to the frontend,
- *   which renders them (Drupal's own path, alias and language prefix kept).
+ *   which renders them (Drupal's own path, alias and language prefix kept) —
+ *   unless the user gets the site shell (see SiteShell).
  * - Backend responses may be framed by the frontend (the blökkli editor loads
  *   Drupal forms in iframes) and are kept out of search engines.
  *
@@ -42,6 +44,7 @@ final class BackendDomainSubscriber implements EventSubscriberInterface {
   public function __construct(
     private readonly BackendDomain $backendDomain,
     private readonly RouteMatchInterface $routeMatch,
+    private readonly ?SiteShell $siteShell = NULL,
   ) {}
 
   /**
@@ -65,6 +68,10 @@ final class BackendDomainSubscriber implements EventSubscriberInterface {
     }
     $request = $event->getRequest();
     if ($request->getRequestFormat() !== 'html' || !$this->backendDomain->isBackendRequest($request)) {
+      return;
+    }
+    // Editors stay in the backend and see the page in the site shell.
+    if ($this->siteShell?->applies($request)) {
       return;
     }
     $target = $this->getFrontendTarget($request);

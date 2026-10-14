@@ -5,3 +5,6 @@ package: Custom
 core_version_requirement: ^10 || ^11
 dependencies:
   - icms_admin:icms_admin
+  - paragraphs_blokkli:paragraphs_blokkli
+'interface translation project': icms_core_logic
+'interface translation server pattern': modules/contrib/icms_core_logic/translations/%project.%language.po

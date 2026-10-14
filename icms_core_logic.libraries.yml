@@ -1,0 +1,15 @@
+site_shell:
+  css:
+    component:
+      css/site-shell.css: {}
+  js:
+    js/site-shell.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupal.displace
+
+frame_bust:
+  header: true
+  js:
+    js/frame-bust.js: {}

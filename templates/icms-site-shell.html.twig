@@ -1,0 +1,11 @@
+{#
+/**
+ * @file
+ * The frontend page inside the Drupal backend.
+ *
+ * Available variables:
+ * - url: The frontend URL to show.
+ * - frontend_origin: The frontend origin, trusted for postMessage.
+ */
+#}
+<iframe class="icms-site-shell" src="{{ url }}" title="{{ 'Website'|t }}" data-icms-site-shell data-frontend-origin="{{ frontend_origin }}"></iframe>

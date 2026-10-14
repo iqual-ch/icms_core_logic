@@ -1,0 +1,23 @@
+/**
+ * @file
+ * The frontend inside the Drupal backend (site shell).
+ *
+ * The iframe fills the viewport next to the navigation sidebar and below the
+ * top bar, following Drupal.displace() so a collapsing sidebar resizes it.
+ */
+
+body:has(.icms-site-shell) {
+  overflow: hidden;
+}
+
+.icms-site-shell {
+  position: fixed;
+  top: var(--drupal-displace-offset-top, 0px);
+  left: var(--drupal-displace-offset-left, 0px);
+  z-index: 50;
+  /* A replaced element ignores right/bottom with auto size. */
+  width: calc(100vw - var(--drupal-displace-offset-left, 0px));
+  height: calc(100dvh - var(--drupal-displace-offset-top, 0px));
+  border: 0;
+  background: #fff;
+}

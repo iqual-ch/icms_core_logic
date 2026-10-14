@@ -1,0 +1,16 @@
+# Interface translations of icms_core_logic, imported by the module
+# (hook_install(), update hooks); source strings are English.
+msgid ""
+msgstr ""
+"Project-Id-Version: icms_core_logic\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Edit page content"
+msgstr "Modifier le contenu de la page"
+
+msgid "Page settings"
+msgstr "Paramètres de la page"

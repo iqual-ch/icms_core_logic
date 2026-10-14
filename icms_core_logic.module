@@ -5,9 +5,14 @@
  * Runtime hooks and callbacks for ICMS core.
  */
 
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Url;
 use Drupal\node\Entity\NodeType;
+use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 
 /**
@@ -154,4 +159,147 @@ function icms_core_logic_library_info_alter(array &$libraries, string $extension
   }
   $path = '/' . \Drupal::service('extension.list.module')->getPath('icms_core_logic') . '/js/paragraphs-blokkli-rich-text.js';
   $libraries['rich-text']['js'] = [$path => $libraries['rich-text']['js']['js/rich-text.js']];
+}
+
+/**
+ * Implements hook_theme().
+ */
+function icms_core_logic_theme(): array {
+  return [
+    'icms_site_shell' => [
+      'variables' => ['url' => NULL, 'frontend_origin' => NULL],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view_alter() for nodes.
+ *
+ * On the backend domain, editors see a content page as the frontend renders
+ * it, inside Drupal's navigation and top bar (see SiteShell).
+ */
+function icms_core_logic_node_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display): void {
+  _icms_core_logic_site_shell_view_alter($build, $entity, 'entity.node.canonical');
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view_alter() for taxonomy terms.
+ */
+function icms_core_logic_taxonomy_term_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display): void {
+  _icms_core_logic_site_shell_view_alter($build, $entity, 'entity.taxonomy_term.canonical');
+}
+
+/**
+ * Replaces a full entity view with the site shell on its canonical page.
+ */
+function _icms_core_logic_site_shell_view_alter(array &$build, EntityInterface $entity, string $canonical_route): void {
+  if (($build['#view_mode'] ?? '') !== 'full' || \Drupal::routeMatch()->getRouteName() !== $canonical_route) {
+    return;
+  }
+  $request = \Drupal::request();
+  /** @var \Drupal\icms_core_logic\SiteShell $shell */
+  $shell = \Drupal::service('icms_core_logic.site_shell');
+  if (!$shell->applies($request)) {
+    return;
+  }
+  $query = $request->getQueryString();
+  // Keep what the render pipeline still reads from the entity build after
+  // this hook (EntityViewController::buildTitle() needs #entity_type and the
+  // entity), drop the theme hook and the fields: the shell is the content.
+  $kept = ['#cache', '#attached', '#pre_render', '#entity_type', '#' . $entity->getEntityTypeId(), '#view_mode', '#weight'];
+  $build = array_intersect_key($build, array_flip($kept)) + [
+    'shell' => $shell->build($request, $entity->toUrl()->toString() . ($query ? '?' . $query : '')),
+  ];
+}
+
+/**
+ * Implements hook_entity_operation().
+ *
+ * "Edit page content" (blökkli) as the first (default) operation of
+ * blökkli-enabled nodes in content listings.
+ */
+function icms_core_logic_entity_operation(EntityInterface $entity): array {
+  if (!$entity instanceof NodeInterface || !\Drupal::service('icms_core_logic.blokkli_editor')->access($entity)->isAllowed()) {
+    return [];
+  }
+  return [
+    'blokkli' => [
+      'title' => t('Edit page content'),
+      'weight' => -10,
+      'url' => Url::fromRoute('icms_core_logic.blokkli_edit', ['node' => $entity->id()]),
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_operation_alter().
+ *
+ * With the page content edited in blökkli, the node form is where the page's
+ * settings live.
+ */
+function icms_core_logic_entity_operation_alter(array &$operations, EntityInterface $entity): void {
+  if (isset($operations['edit']) && $entity instanceof NodeInterface && \Drupal::service('icms_core_logic.blokkli_editor')->isEnabled($entity)) {
+    $operations['edit']['title'] = t('Page settings');
+  }
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ *
+ * Same as the operations: on blökkli-enabled nodes the edit form tab is
+ * "Page settings".
+ */
+function icms_core_logic_menu_local_tasks_alter(array &$data, string $route_name, RefinableCacheableDependencyInterface &$cacheability): void {
+  $node = \Drupal::routeMatch()->getParameter('node');
+  if (!$node instanceof NodeInterface || !isset($data['tabs'][0]['entity.node.edit_form'])) {
+    return;
+  }
+  $cacheability->addCacheTags(['config:paragraphs_blokkli.settings']);
+  if (\Drupal::service('icms_core_logic.blokkli_editor')->isEnabled($node)) {
+    $data['tabs'][0]['entity.node.edit_form']['#link']['title'] = t('Page settings');
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for the navigation top bar's page actions.
+ *
+ * Core features the entity's edit form as the primary action; on blökkli
+ * pages the editor is the primary action and the edit form moves into the
+ * "more actions" dropdown.
+ */
+function icms_core_logic_preprocess_top_bar_page_actions(array &$variables): void {
+  foreach ($variables['page_actions'] as $key => $action) {
+    if (!str_starts_with((string) $key, 'icms_core_logic.blokkli_edit')) {
+      continue;
+    }
+    $demoted = array_map(static fn(array $featured) => $featured['page_action'], $variables['featured_page_actions'] ?? []);
+    unset($variables['page_actions'][$key]);
+    $variables['page_actions'] = $demoted + $variables['page_actions'];
+    $variables['featured_page_actions'] = [
+      $key => [
+        'page_action' => $action,
+        'icon' => ['pack_id' => 'icms_admin', 'icon_id' => 'blokkli'],
+      ],
+    ];
+    return;
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Drupal pages on the backend domain leave the site shell if loaded inside
+ * it (see js/frame-bust.js); blökkli's iframe pages are framed by the
+ * frontend on purpose and stay out of it.
+ */
+function icms_core_logic_page_attachments(array &$attachments): void {
+  $request = \Drupal::request();
+  if (!\Drupal::service('icms_core_logic.backend_domain')->isBackendRequest($request)) {
+    return;
+  }
+  $route_name = (string) \Drupal::routeMatch()->getRouteName();
+  if ($request->query->get('paragraphsBlokkli') || str_starts_with($route_name, 'paragraphs_blokkli.')) {
+    return;
+  }
+  $attachments['#attached']['library'][] = 'icms_core_logic/frame_bust';
 }

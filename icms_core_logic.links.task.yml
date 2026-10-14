@@ -1,0 +1,5 @@
+icms_core_logic.blokkli_edit:
+  title: 'Edit page content'
+  route_name: icms_core_logic.blokkli_edit
+  base_route: entity.node.canonical
+  weight: -5

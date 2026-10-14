@@ -14,7 +14,7 @@ services:
     class: Drupal\icms_core_logic\BackendDomain
   icms_core_logic.backend_domain_subscriber:
     class: Drupal\icms_core_logic\EventSubscriber\BackendDomainSubscriber
-    arguments: ['@icms_core_logic.backend_domain', '@current_route_match']
+    arguments: ['@icms_core_logic.backend_domain', '@current_route_match', '@icms_core_logic.site_shell']
     tags:
       - { name: event_subscriber }
   icms_core_logic.backend_domain_config_override:
@@ -22,3 +22,14 @@ services:
     arguments: ['@icms_core_logic.backend_domain', '@request_stack']
     tags:
       - { name: config.factory.override, priority: 50 }
+  icms_core_logic.site_shell:
+    class: Drupal\icms_core_logic\SiteShell
+    arguments: ['@icms_core_logic.backend_domain', '@current_user', '@config.factory']
+  icms_core_logic.site_shell_exception_subscriber:
+    class: Drupal\icms_core_logic\EventSubscriber\SiteShellExceptionSubscriber
+    arguments: ['@icms_core_logic.site_shell', '@http_kernel']
+    tags:
+      - { name: event_subscriber }
+  icms_core_logic.blokkli_editor:
+    class: Drupal\icms_core_logic\BlokkliEditor
+    arguments: ['@paragraphs_blokkli.config', '@icms_core_logic.backend_domain', '@entity.repository', '@current_user', '@request_stack']
