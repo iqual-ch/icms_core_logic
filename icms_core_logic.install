@@ -2214,3 +2214,70 @@ function icms_core_logic_update_9061() {
 
   return $log ? implode(' ', $log) : (string) new TranslatableMarkup('Core navigation and the new Gin toolbar were already in place.');
 }
+
+/**
+ * Keep the last 10,000 log messages instead of 1,000,000 (ICMS-799).
+ *
+ * With a million rows the watchdog table took 319 MB of a 479 MB database on
+ * a live site, and dblog's cron cleanup works through all of it. A project
+ * that already keeps fewer rows, or set "All" (0) on purpose, is left alone.
+ * The next cron run deletes the surplus rows.
+ */
+function icms_core_logic_update_9062() {
+  $config = \Drupal::configFactory()->getEditable('dblog.settings');
+  $row_limit = (int) $config->get('row_limit');
+  if ($config->isNew() || $row_limit <= 10000) {
+    return (string) new TranslatableMarkup('The database log row limit is already at most 10,000 (or unlimited); left unchanged.');
+  }
+  $config->set('row_limit', 10000)->save();
+
+  return (string) new TranslatableMarkup('Lowered the database log row limit from @old to 10,000 rows.', ['@old' => $row_limit]);
+}
+
+/**
+ * Stop purging the sitemap cache tags on every cron run (ICMS-799).
+ *
+ * The simple_sitemap module regenerates the sitemaps on every cron run and
+ * invalidates simple_sitemap:<variant>; the core tags queuer sent these on to
+ * every purger, i.e. a POST to the frontend's purge endpoint each run. No
+ * purged cache holds the sitemaps — Drupal serves them itself — so the queuer
+ * ignores the tag prefix from now on.
+ */
+function icms_core_logic_update_9063() {
+  $config = \Drupal::configFactory()->getEditable('purge_queuer_coretags.settings');
+  if ($config->isNew()) {
+    return (string) new TranslatableMarkup('The core tags queuer is not configured; nothing to do.');
+  }
+  $blacklist = $config->get('blacklist') ?? [];
+  if (in_array('simple_sitemap', $blacklist, TRUE)) {
+    return (string) new TranslatableMarkup('The core tags queuer already ignores the sitemap tags.');
+  }
+  $blacklist[] = 'simple_sitemap';
+  $config->set('blacklist', $blacklist)->save();
+
+  return (string) new TranslatableMarkup('The core tags queuer ignores the simple_sitemap cache tags.');
+}
+
+/**
+ * Enable the purge processor for "drush p:queue-work" (ICMS-799).
+ *
+ * The scaffolded "purge" cron works the purge queue with
+ * "drush p:queue-work --finish" between the (now less frequent) Drupal cron
+ * runs; the command refuses to run without this processor. The cron
+ * processor stays enabled as the fallback.
+ */
+function icms_core_logic_update_9064() {
+  if (!\Drupal::moduleHandler()->moduleExists('purge')) {
+    return (string) new TranslatableMarkup('Purge is not installed; nothing to do.');
+  }
+  /** @var \Drupal\purge\Plugin\Purge\Processor\ProcessorsServiceInterface $processors */
+  $processors = \Drupal::service('purge.processors');
+  $enabled = $processors->getPluginsEnabled();
+  if (in_array('drush_purge_queue_work', $enabled, TRUE)) {
+    return (string) new TranslatableMarkup('The drush queue work processor is already enabled.');
+  }
+  $enabled[] = 'drush_purge_queue_work';
+  $processors->setPluginsEnabled($enabled);
+
+  return (string) new TranslatableMarkup('Enabled the drush queue work processor of purge.');
+}
