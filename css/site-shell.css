@@ -21,3 +21,26 @@ body:has(.icms-site-shell) {
   border: 0;
   background: #fff;
 }
+
+/*
+ * Drupal's messages (saved, validation errors) render in Gin's highlighted
+ * region above the content block, which the fixed iframe would cover. Float
+ * them above the frame instead, in the bottom left corner of the frame with
+ * the same gap to the sidebar and to the bottom; js/site-shell.js dismisses
+ * them on click and when the frontend navigates inside the shell.
+ */
+body:has(.icms-site-shell) .region-highlighted {
+  position: fixed;
+  bottom: calc(var(--drupal-displace-offset-bottom, 0px) + var(--gin-spacing-m, 1rem));
+  left: calc(var(--drupal-displace-offset-left, 0px) + var(--gin-spacing-m, 1rem));
+  right: var(--gin-spacing-m, 1rem);
+  z-index: 51;
+  max-width: 50rem;
+  pointer-events: none;
+}
+
+body:has(.icms-site-shell) .region-highlighted .messages {
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: var(--gin-shadow-l2, 0 2px 8px rgba(0, 0, 0, 0.2));
+}
