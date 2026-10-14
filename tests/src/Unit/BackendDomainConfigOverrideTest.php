@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\icms_core_logic\Unit;
 
+use Drupal\Core\Cache\Context\CacheContextsManager;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\icms_core_logic\BackendDomain;
 use Drupal\icms_core_logic\Config\BackendDomainConfigOverride;
 use Drupal\Tests\UnitTestCase;
@@ -16,6 +18,19 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 #[Group('icms_core_logic')]
 class BackendDomainConfigOverrideTest extends UnitTestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    // Cacheable metadata validates its cache contexts.
+    $cacheContextsManager = $this->createMock(CacheContextsManager::class);
+    $cacheContextsManager->method('assertValidTokens')->willReturn(TRUE);
+    $container = new ContainerBuilder();
+    $container->set('cache_contexts_manager', $cacheContextsManager);
+    \Drupal::setContainer($container);
+  }
 
   /**
    * Creates the override for a current request.
