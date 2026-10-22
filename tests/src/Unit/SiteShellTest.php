@@ -6,6 +6,7 @@ namespace Drupal\Tests\icms_core_logic\Unit;
 
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\icms_core_logic\BackendDomain;
 use Drupal\icms_core_logic\SiteShell;
 use Drupal\Tests\UnitTestCase;
@@ -35,19 +36,19 @@ class SiteShellTest extends UnitTestCase {
     $user = $this->createMock(AccountProxyInterface::class);
     $user->method('hasPermission')->willReturnCallback(fn(string $permission) => in_array($permission, $permissions, TRUE));
     $config = $this->getConfigFactoryStub(['frontend_routing.settings' => ['keys' => $keys]]);
-    return new SiteShell(new BackendDomain(), $user, $config);
+    return new SiteShell(new BackendDomain(new Settings(['icms_frontend_hosts' => ['www.example.com']])), $user, $config);
   }
 
   /**
    * The shell needs a toolbar user on the backend domain.
    */
   public function testApplies(): void {
-    $backendRequest = Request::create('https://backend.www.example.com/de/text');
+    $backendRequest = Request::create('https://backend.example.com/de/text');
     $this->assertTrue($this->shell()->applies($backendRequest));
     $this->assertTrue($this->shell(['access toolbar'])->applies($backendRequest));
     $this->assertFalse($this->shell([])->applies($backendRequest), 'Anonymous users are redirected instead.');
     $this->assertFalse($this->shell()->applies(Request::create('https://www.example.com/de/text')), 'Frontend requests are not shelled.');
-    $jsonRequest = Request::create('https://backend.www.example.com/de/text');
+    $jsonRequest = Request::create('https://backend.example.com/de/text');
     $jsonRequest->setRequestFormat('json');
     $this->assertFalse($this->shell()->applies($jsonRequest));
   }
@@ -99,7 +100,7 @@ class SiteShellTest extends UnitTestCase {
    * The shell frames the frontend URL of the requested path.
    */
   public function testBuild(): void {
-    $build = $this->shell()->build(Request::create('https://backend.www.example.com/de/text'), '/de/text?blokkliEditing=1');
+    $build = $this->shell()->build(Request::create('https://backend.example.com/de/text'), '/de/text?blokkliEditing=1');
     $this->assertSame('icms_site_shell', $build['#theme']);
     $this->assertSame('https://www.example.com/de/text?blokkliEditing=1', $build['#url']);
     $this->assertSame('https://www.example.com', $build['#frontend_origin']);

@@ -9,6 +9,7 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Url;
 use Drupal\icms_core_logic\BackendDomain;
 use Drupal\icms_core_logic\EventSubscriber\BackendDomainSubscriber;
@@ -48,7 +49,7 @@ class BackendDomainSubscriberTest extends UnitTestCase {
     $routeMatch = $this->createMock(RouteMatchInterface::class);
     $routeMatch->method('getRouteName')->willReturn($routeName);
     $routeMatch->method('getParameters')->willReturn(new ParameterBag($parameters));
-    return new BackendDomainSubscriber(new BackendDomain(), $routeMatch);
+    return new BackendDomainSubscriber(new BackendDomain(new Settings(['icms_frontend_hosts' => ['www.example.com']])), $routeMatch);
   }
 
   /**
@@ -80,7 +81,7 @@ class BackendDomainSubscriberTest extends UnitTestCase {
    * Content pages on the backend domain redirect to the frontend alias.
    */
   public function testRedirectsContentPagesToTheFrontend(): void {
-    $event = $this->requestEvent(Request::create('https://backend.www.example.com/node/1?preview=1'));
+    $event = $this->requestEvent(Request::create('https://backend.example.com/node/1?preview=1'));
     $this->subscriber('entity.node.canonical', ['node' => $this->entityWithUrl('/de/ueber-uns')])->onRequest($event);
 
     $this->assertNotNull($event->getResponse());
@@ -98,7 +99,7 @@ class BackendDomainSubscriberTest extends UnitTestCase {
    */
   public function testRedirectsTheFrontPage(): void {
     foreach (['/' => 'https://www.example.com/', '/fr' => 'https://www.example.com/fr', '/de/' => 'https://www.example.com/de/'] as $path => $expected) {
-      $event = $this->requestEvent(Request::create('https://backend.www.example.com' . $path));
+      $event = $this->requestEvent(Request::create('https://backend.example.com' . $path));
       $this->subscriber('entity.node.canonical', ['node' => $this->entityWithUrl('/de/startseite')])->onRequest($event);
       $this->assertSame($expected, $event->getResponse()?->headers->get('Location'), $path);
     }
@@ -108,11 +109,11 @@ class BackendDomainSubscriberTest extends UnitTestCase {
    * Admin pages, non-HTML requests and frontend requests are left alone.
    */
   public function testLeavesOtherRequestsAlone(): void {
-    $event = $this->requestEvent(Request::create('https://backend.www.example.com/node/1/edit'));
+    $event = $this->requestEvent(Request::create('https://backend.example.com/node/1/edit'));
     $this->subscriber('entity.node.edit_form', ['node' => $this->entityWithUrl('/de/ueber-uns')])->onRequest($event);
     $this->assertNull($event->getResponse());
 
-    $request = Request::create('https://backend.www.example.com/node/1');
+    $request = Request::create('https://backend.example.com/node/1');
     $request->setRequestFormat('json');
     $event = $this->requestEvent($request);
     $this->subscriber('entity.node.canonical', ['node' => $this->entityWithUrl('/de/ueber-uns')])->onRequest($event);
@@ -129,7 +130,7 @@ class BackendDomainSubscriberTest extends UnitTestCase {
   public function testAdjustsBackendResponseHeaders(): void {
     $response = new Response();
     $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
-    $this->subscriber()->onResponse($this->responseEvent('https://backend.www.example.com/user/login', $response));
+    $this->subscriber()->onResponse($this->responseEvent('https://backend.example.com/user/login', $response));
 
     // X-Frame-Options stays as a fallback; CSP frame-ancestors wins where
     // supported.
@@ -140,7 +141,7 @@ class BackendDomainSubscriberTest extends UnitTestCase {
     // An existing X-Robots-Tag is kept.
     $response = new Response();
     $response->headers->set('X-Robots-Tag', 'none');
-    $this->subscriber()->onResponse($this->responseEvent('https://backend.www.example.com/user/login', $response));
+    $this->subscriber()->onResponse($this->responseEvent('https://backend.example.com/user/login', $response));
     $this->assertSame('none', $response->headers->get('X-Robots-Tag'));
   }
 
@@ -151,7 +152,7 @@ class BackendDomainSubscriberTest extends UnitTestCase {
   public function testMergesFrameAncestorsIntoAnExistingPolicy(array|string $policy, array|string $expected): void {
     $response = new Response();
     $response->headers->set('Content-Security-Policy', $policy);
-    $this->subscriber()->onResponse($this->responseEvent('https://backend.www.example.com/user/login', $response));
+    $this->subscriber()->onResponse($this->responseEvent('https://backend.example.com/user/login', $response));
     $this->assertSame((array) $expected, $response->headers->all('Content-Security-Policy'));
   }
 

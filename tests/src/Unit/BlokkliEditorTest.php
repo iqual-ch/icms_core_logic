@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Url;
 use Drupal\icms_core_logic\BackendDomain;
 use Drupal\icms_core_logic\BlokkliEditor;
@@ -68,8 +69,8 @@ class BlokkliEditorTest extends UnitTestCase {
     $user = $this->createMock(AccountProxyInterface::class);
     $user->method('hasPermission')->willReturn($permission);
     $requestStack = new RequestStack();
-    $requestStack->push($request ?? Request::create('https://backend.www.example.com/admin/content'));
-    return new BlokkliEditor($config, new BackendDomain(), $repository, $user, $requestStack);
+    $requestStack->push($request ?? Request::create('https://backend.example.com/admin/content'));
+    return new BlokkliEditor($config, new BackendDomain(new Settings(['icms_frontend_hosts' => ['www.example.com']])), $repository, $user, $requestStack);
   }
 
   /**

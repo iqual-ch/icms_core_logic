@@ -6,6 +6,7 @@ namespace Drupal\Tests\icms_core_logic\Unit;
 
 use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Site\Settings;
 use Drupal\icms_core_logic\BackendDomain;
 use Drupal\icms_core_logic\Config\BackendDomainConfigOverride;
 use Drupal\Tests\UnitTestCase;
@@ -40,14 +41,14 @@ class BackendDomainConfigOverrideTest extends UnitTestCase {
     if ($request) {
       $stack->push($request);
     }
-    return new BackendDomainConfigOverride(new BackendDomain(), $stack);
+    return new BackendDomainConfigOverride(new BackendDomain(new Settings(['icms_frontend_hosts' => ['www.example.com']])), $stack);
   }
 
   /**
    * On a backend request the sitemap lists the frontend domain.
    */
   public function testOverridesTheSitemapBaseUrlOnTheBackend(): void {
-    $override = $this->override(Request::create('https://backend.www.example.com/admin/config/search/simplesitemap'));
+    $override = $this->override(Request::create('https://backend.example.com/admin/config/search/simplesitemap'));
     $this->assertSame(
       ['simple_sitemap.settings' => ['base_url' => 'https://www.example.com']],
       $override->loadOverrides(['system.site', 'simple_sitemap.settings']),
