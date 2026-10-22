@@ -76,7 +76,7 @@ class SessionConfigurationTest extends UnitTestCase {
   }
 
   /**
-   * The cookie on "backend.D" is the one core sets on D (A and C unchanged).
+   * The backend cookie is the one core sets on "<domain>".
    */
   #[DataProvider('siteDomainProvider')]
   public function testBackendCookieIsCoreCookieOfTheSiteDomain(string $backendUri, string $siteUri, array $frontendHosts): void {

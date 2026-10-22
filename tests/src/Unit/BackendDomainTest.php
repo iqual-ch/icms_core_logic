@@ -25,7 +25,7 @@ class BackendDomainTest extends UnitTestCase {
   }
 
   /**
-   * A request on "backend.D" belongs to the frontend on D or www.D.
+   * A request on "backend.<domain>" belongs to "<domain>" or "www.<domain>".
    */
   #[DataProvider('scenarioProvider')]
   public function testScenarios(mixed $frontendHosts, string $backendUri, string $frontendUrl, string $cookieDomain): void {
@@ -39,8 +39,7 @@ class BackendDomainTest extends UnitTestCase {
     $this->assertSame(substr($cookieDomain, 1), $domain->getSiteDomain($request));
     $this->assertSame($cookieDomain, $domain->getCookieDomain($request));
 
-    // Requests on the frontend host (proxied GraphQL) are no backend requests;
-    // on www.D they share the cookie domain, on D core's already is ".D".
+    // Proxied requests on the frontend host are no backend requests.
     $frontend = Request::create($frontendUrl . '/graphql');
     $this->assertFalse($domain->isBackendRequest($frontend));
     $this->assertNull($domain->getFrontendUrl($frontend));
@@ -60,7 +59,7 @@ class BackendDomainTest extends UnitTestCase {
       'C+www' => [['www.baz.foobar.com'], 'https://backend.baz.foobar.com', 'https://www.baz.foobar.com', '.baz.foobar.com'],
       'multi-domain apex' => [$multi, 'https://backend.foo.com', 'https://foo.com', '.foo.com'],
       'multi-domain www' => [$multi, 'https://backend.bar.ch', 'https://www.bar.ch', '.bar.ch'],
-      'D and www.D both known' => [['foobar.com', 'www.foobar.com'], 'https://backend.foobar.com', 'https://foobar.com', '.foobar.com'],
+      'apex and www both known' => [['foobar.com', 'www.foobar.com'], 'https://backend.foobar.com', 'https://foobar.com', '.foobar.com'],
       'only another www known' => [['www.other.com'], 'https://backend.foobar.com', 'https://foobar.com', '.foobar.com'],
       'no settings' => [NULL, 'https://backend.foobar.com', 'https://foobar.com', '.foobar.com'],
       'invalid settings' => ['www.foobar.com', 'https://backend.foobar.com', 'https://foobar.com', '.foobar.com'],
@@ -78,7 +77,7 @@ class BackendDomainTest extends UnitTestCase {
   }
 
   /**
-   * Requests on hosts other than "backend.D" are not backend requests.
+   * Requests on other hosts are not backend requests.
    */
   #[DataProvider('otherRequestProvider')]
   public function testOtherRequests(string $uri, ?string $siteDomain): void {

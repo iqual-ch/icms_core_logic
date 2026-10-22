@@ -10,17 +10,10 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Describes the split of a site into a frontend domain and its Drupal backend.
  *
- * Each pair of frontend and backend shares a site domain D: Drupal is served
- * on "backend.D", the Nuxt frontend on D itself or on "www.D" (see
- * docs/routing.md). Everything is derived from the host of the request at
- * hand, so a site can serve several domains, each paired with its own backend
- * subdomain.
- *
- * Whether D or www.D is the frontend of "backend.D" cannot be told from the
- * host alone: $settings['icms_frontend_hosts'] lists the hosts the frontend is
- * served on (lowercase, without port; settings.platformsh.php fills it from
- * the platform's routes, never from a request). The frontend is www.D if only
- * that is listed, D otherwise — also when nothing is listed, as locally.
+ * Drupal is served on "backend.<domain>", the frontend on "<domain>" or
+ * "www.<domain>" (see docs/routing.md), derived per request, so a site can
+ * serve several domains. The frontend is "www.<domain>" only if that is listed
+ * in $settings['icms_frontend_hosts'].
  */
 final class BackendDomain {
 
@@ -30,7 +23,7 @@ final class BackendDomain {
   public const SUBDOMAIN = 'backend';
 
   /**
-   * The subdomain label of a frontend served on "www.D".
+   * The subdomain label of a www frontend.
    */
   public const WWW = 'www';
 
@@ -49,10 +42,9 @@ final class BackendDomain {
   }
 
   /**
-   * The site domain D of a request on "backend.D" or "www.D".
+   * The "<domain>" of a request on "backend.<domain>" or "www.<domain>".
    *
-   * NULL for requests on any other host, D itself included: core's cookie
-   * domain and name for such a host already are those of its site domain.
+   * NULL for any other host.
    */
   public function getSiteDomain(Request $request): ?string {
     $host = strtolower($request->getHost());
@@ -60,7 +52,7 @@ final class BackendDomain {
   }
 
   /**
-   * The frontend host of a backend request: D or "www.D" for "backend.D".
+   * The frontend host of a backend request: "<domain>" or "www.<domain>".
    *
    * NULL for requests that were not made to a backend domain.
    */
@@ -102,11 +94,8 @@ final class BackendDomain {
   /**
    * The session cookie domain shared by a frontend domain and its backend.
    *
-   * The frontend forwards the browser's cookies to Drupal, so a session opened
-   * on the backend domain must be valid on the frontend domain too: the cookie
-   * is scoped to the site domain, which covers D, "www.D" and "backend.D"
-   * (".example.com" for backend.example.com and www.example.com). NULL for
-   * requests on any other host (see getSiteDomain()).
+   * The frontend forwards the browser's cookies to Drupal, so ".<domain>"
+   * covers both. NULL for any other host (see getSiteDomain()).
    */
   public function getCookieDomain(Request $request): ?string {
     $domain = $this->getSiteDomain($request);
@@ -114,10 +103,10 @@ final class BackendDomain {
   }
 
   /**
-   * The hosts the frontend is served on ($settings['icms_frontend_hosts']).
+   * The lowercase hosts in $settings['icms_frontend_hosts'].
    *
    * @return string[]
-   *   Lowercase hostnames without port.
+   *   Hostnames without port.
    */
   private function getFrontendHosts(): array {
     $hosts = $this->settings->get('icms_frontend_hosts', []);

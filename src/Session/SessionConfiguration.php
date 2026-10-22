@@ -12,13 +12,9 @@ use Symfony\Component\HttpFoundation\Request;
  * Shares the session cookie between a frontend domain and its Drupal backend.
  *
  * Core scopes the session cookie to the request host and derives the cookie
- * name from it. On requests to "backend.D" and "www.D" both are taken from
- * the site domain D instead (see BackendDomain), so the cookie a login on
- * backend.example.com sets is sent to www.example.com too, where the frontend
- * forwards it to Drupal (X-Forwarded-Host: www.example.com), which looks it up
- * under the same name. On D itself core's cookie already is that of D. A
- * cookie domain configured in services.yml (session.storage.options) wins, as
- * it does in core.
+ * name from it. On "backend.<domain>" and "www.<domain>" both are taken from
+ * "<domain>" instead (see BackendDomain), so a login on the backend is valid
+ * on the frontend. A cookie domain in services.yml wins, as it does in core.
  *
  * @see \Drupal\icms_core_logic\IcmsCoreLogicServiceProvider
  */
