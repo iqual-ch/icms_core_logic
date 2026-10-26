@@ -599,7 +599,12 @@ function _icms_core_logic_install_conversion_paragraph_bundles(): string {
 /**
  * Install a missing config entity from module-bundled update YAML.
  *
- * The YAML is read from config/update/{$directory}/{$config_name}.yml.
+ * The YAML is read from config/update/{$directory}/{$config_name}.yml. When
+ * the project already exports that config, the record in its sync directory
+ * wins: the entity then carries the repository's UUID and the config import
+ * that follows the update hooks keeps it. Created from the bundled YAML (no
+ * UUID), every environment would get a fresh UUID and the import would delete
+ * and recreate the entity, dropping its config translations (ICMS-816).
  */
 function _icms_core_logic_import_config_entity(string $config_name, string $entity_type_id, string $directory = '9014'): bool {
   $active_storage = \Drupal::service('config.storage');
@@ -607,7 +612,7 @@ function _icms_core_logic_import_config_entity(string $config_name, string $enti
     return FALSE;
   }
 
-  $data = _icms_core_logic_read_exported_config($config_name, $directory);
+  $data = _icms_core_logic_read_sync_config($config_name) ?? _icms_core_logic_read_exported_config($config_name, $directory);
   if (!$data) {
     \Drupal::logger('icms_core_logic')->warning('Skipped installing missing config entity @config because its bundled update YAML file could not be read.', ['@config' => $config_name]);
     return FALSE;
@@ -633,6 +638,22 @@ function _icms_core_logic_read_exported_config(string $config_name, string $dire
 
   $data = Yaml::parseFile($config_path);
   return is_array($data) ? $data : NULL;
+}
+
+/**
+ * Read a config object from the project's config sync directory.
+ *
+ * Returns NULL when the project does not export that config (yet).
+ */
+function _icms_core_logic_read_sync_config(string $config_name): ?array {
+  /** @var \Drupal\Core\Config\StorageInterface $sync_storage */
+  $sync_storage = \Drupal::service('config.storage.sync');
+  if (!$sync_storage->exists($config_name)) {
+    return NULL;
+  }
+
+  $data = $sync_storage->read($config_name);
+  return is_array($data) && $data ? $data : NULL;
 }
 
 /**
