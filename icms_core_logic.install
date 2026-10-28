@@ -2313,3 +2313,20 @@ function icms_core_logic_update_9064() {
 
   return (string) new TranslatableMarkup('Enabled the drush queue work processor of purge.');
 }
+
+/**
+ * Lower the browser cache lifetime of Drupal responses to an hour (ICMS-268).
+ *
+ * The one-year max-age was meant for the Varnish that used to sit in front of
+ * Drupal. Without it, browsers keep the sitemap, redirects and 403s for a year.
+ * A value a project chose itself is kept.
+ */
+function icms_core_logic_update_9065() {
+  $config = \Drupal::configFactory()->getEditable('system.performance');
+  if ($config->get('cache.page.max_age') !== 31536000) {
+    return (string) new TranslatableMarkup('The page cache max-age was customized; it is kept.');
+  }
+  $config->set('cache.page.max_age', 3600)->save();
+
+  return (string) new TranslatableMarkup('Lowered the page cache max-age to one hour.');
+}
