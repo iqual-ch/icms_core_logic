@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for the ICMS core logic update test module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function icms_core_logic_update_test_install(): void {
+  // Fails after the module installer rebuilt the container.
+  throw new \RuntimeException('icms_core_logic_update_test failed to install.');
+}

@@ -600,29 +600,27 @@ function _icms_core_logic_install_conversion_paragraph_bundles(): string {
  * Install a missing config entity from module-bundled update YAML.
  *
  * The YAML is read from config/update/{$directory}/{$config_name}.yml. When
- * the project already exports that config, the record in its sync directory
- * wins: the entity then carries the repository's UUID and the config import
- * that follows the update hooks keeps it. Created from the bundled YAML (no
- * UUID), every environment would get a fresh UUID and the import would delete
- * and recreate the entity, dropping its config translations (ICMS-816).
+ * the project already exports that config, the exported record wins, see
+ * \Drupal\icms_core_logic\UpdateConfigInstaller::importConfigEntity().
+ *
+ * @param string $config_name
+ *   The config name.
+ * @param string $entity_type_id
+ *   Unused: the entity type follows from the config name.
+ * @param string $directory
+ *   The directory below config/update holding the YAML.
  */
 function _icms_core_logic_import_config_entity(string $config_name, string $entity_type_id, string $directory = '9014'): bool {
-  $active_storage = \Drupal::service('config.storage');
-  if ($active_storage->exists($config_name)) {
+  if (\Drupal::service('config.storage')->exists($config_name)) {
     return FALSE;
   }
 
-  $data = _icms_core_logic_read_sync_config($config_name) ?? _icms_core_logic_read_exported_config($config_name, $directory);
-  if (!$data) {
+  $created = \Drupal::service('icms_core_logic.update_config_installer')
+    ->importConfigEntity($config_name, _icms_core_logic_read_exported_config($config_name, $directory));
+  if (!$created) {
     \Drupal::logger('icms_core_logic')->warning('Skipped installing missing config entity @config because its bundled update YAML file could not be read.', ['@config' => $config_name]);
-    return FALSE;
   }
-
-  $storage = \Drupal::entityTypeManager()->getStorage($entity_type_id);
-  $entity = $storage->createFromStorageRecord($data);
-  $entity->save();
-
-  return TRUE;
+  return $created;
 }
 
 /**
@@ -638,22 +636,6 @@ function _icms_core_logic_read_exported_config(string $config_name, string $dire
 
   $data = Yaml::parseFile($config_path);
   return is_array($data) ? $data : NULL;
-}
-
-/**
- * Read a config object from the project's config sync directory.
- *
- * Returns NULL when the project does not export that config (yet).
- */
-function _icms_core_logic_read_sync_config(string $config_name): ?array {
-  /** @var \Drupal\Core\Config\StorageInterface $sync_storage */
-  $sync_storage = \Drupal::service('config.storage.sync');
-  if (!$sync_storage->exists($config_name)) {
-    return NULL;
-  }
-
-  $data = $sync_storage->read($config_name);
-  return is_array($data) && $data ? $data : NULL;
 }
 
 /**
@@ -1077,11 +1059,14 @@ function icms_core_logic_update_9016() {
  */
 function icms_core_logic_update_9049() {
   $log = "";
+  /** @var \Drupal\icms_core_logic\UpdateConfigInstaller $installer */
+  $installer = \Drupal::service('icms_core_logic.update_config_installer');
 
   // The linkit widget and matchers require the linkit module.
   if (!\Drupal::moduleHandler()->moduleExists('linkit')) {
-    \Drupal::service('module_installer')->install(['linkit']);
-    $log .= "Installed the linkit module. \n";
+    $log .= $installer->installModules(['linkit'])
+      ? "Installed the linkit module; its config entities are left to the config import. \n"
+      : "Installed the linkit module. \n";
   }
 
   // Ensure the "content" linkit profile exists and can match media documents.
@@ -1089,6 +1074,11 @@ function icms_core_logic_update_9049() {
   /** @var \Drupal\linkit\ProfileInterface|null $profile */
   $profile = $profile_storage->load('content');
   $profile_changed = FALSE;
+  // A profile the project exports is created from the export (its UUID).
+  if (!$profile && $installer->importConfigEntity('linkit.linkit_profile.content')) {
+    $profile = $profile_storage->load('content');
+    $log .= "Created the missing linkit profile \"content\". \n";
+  }
   if (!$profile) {
     $profile = $profile_storage->create([
       'id' => 'content',
@@ -1185,12 +1175,13 @@ function icms_core_logic_update_9046() {
  */
 function icms_core_logic_update_9047() {
   $messages = [];
-  $module_installer = \Drupal::service('module_installer');
-  $module_handler = \Drupal::moduleHandler();
+  /** @var \Drupal\icms_core_logic\UpdateConfigInstaller $installer */
+  $installer = \Drupal::service('icms_core_logic.update_config_installer');
 
-  if (!$module_handler->moduleExists('media_bulk_upload')) {
-    $module_installer->install(['media_bulk_upload']);
-    $messages[] = 'Installed media_bulk_upload module.';
+  if (!\Drupal::moduleHandler()->moduleExists('media_bulk_upload')) {
+    $messages[] = $installer->installModules(['media_bulk_upload'])
+      ? 'Installed media_bulk_upload module; its config entities are left to the config import.'
+      : 'Installed media_bulk_upload module.';
   }
   else {
     $messages[] = 'media_bulk_upload module was already installed.';
@@ -1214,13 +1205,12 @@ function icms_core_logic_update_9047() {
     'form_mode' => $has_media_library_form_mode ? 'media_library' : 'default',
     'upload_location' => 'private://media-bulk-upload',
   ];
-  $storage = $entity_type_manager->getStorage('media_bulk_config');
-  $bulk_config = $storage->load('images');
+  $bulk_config = $entity_type_manager->getStorage('media_bulk_config')->load('images');
   if (!$bulk_config) {
-    $storage->create([
+    $installer->importConfigEntity('media_bulk_upload.media_bulk_config.images', [
       'id' => 'images',
       'label' => 'Images',
-    ] + $settings)->save();
+    ] + $settings);
     $messages[] = 'Created images bulk upload form.';
   }
   else {
@@ -1263,20 +1253,24 @@ function icms_core_logic_update_9047() {
  */
 function icms_core_logic_update_9048() {
   $messages = [];
+  /** @var \Drupal\icms_core_logic\UpdateConfigInstaller $installer */
+  $installer = \Drupal::service('icms_core_logic.update_config_installer');
 
-  $storage = FieldStorageConfig::loadByName('node', 'field_icms_weight');
-  if (!$storage) {
-    $storage = FieldStorageConfig::create([
-      'field_name' => 'field_icms_weight',
-      'entity_type' => 'node',
-      'type' => 'integer',
-      'settings' => ['unsigned' => FALSE, 'size' => 'normal'],
-      'cardinality' => 1,
-      'translatable' => TRUE,
-    ]);
-    $storage->save();
+  // Fields the project exports are created from the export, keeping its UUIDs.
+  if (!FieldStorageConfig::loadByName('node', 'field_icms_weight')) {
+    if (!$installer->importConfigEntity('field.storage.node.field_icms_weight')) {
+      FieldStorageConfig::create([
+        'field_name' => 'field_icms_weight',
+        'entity_type' => 'node',
+        'type' => 'integer',
+        'settings' => ['unsigned' => FALSE, 'size' => 'normal'],
+        'cardinality' => 1,
+        'translatable' => TRUE,
+      ])->save();
+    }
     $messages[] = 'Created the field_icms_weight storage.';
   }
+  $storage = FieldStorageConfig::loadByName('node', 'field_icms_weight');
 
   $types = [
     'icms_page',
@@ -1295,18 +1289,20 @@ function icms_core_logic_update_9048() {
     }
 
     if (!FieldConfig::loadByName('node', $type, 'field_icms_weight')) {
-      $field = FieldConfig::create([
-        'field_storage' => $storage,
-        'bundle' => $type,
-        'label' => 'Sort order',
-        'description' => 'Defines the sorting order of the entries. Higher values are shown first. This field overrides the default sorting by publication date.',
-        'required' => FALSE,
-        'translatable' => FALSE,
-      ]);
-      if (\Drupal::moduleHandler()->moduleExists('tmgmt_content')) {
-        $field->setThirdPartySetting('tmgmt_content', 'excluded', FALSE);
+      if (!$installer->importConfigEntity("field.field.node.$type.field_icms_weight")) {
+        $field = FieldConfig::create([
+          'field_storage' => $storage,
+          'bundle' => $type,
+          'label' => 'Sort order',
+          'description' => 'Defines the sorting order of the entries. Higher values are shown first. This field overrides the default sorting by publication date.',
+          'required' => FALSE,
+          'translatable' => FALSE,
+        ]);
+        if (\Drupal::moduleHandler()->moduleExists('tmgmt_content')) {
+          $field->setThirdPartySetting('tmgmt_content', 'excluded', FALSE);
+        }
+        $field->save();
       }
-      $field->save();
       $messages[] = "Added field_icms_weight to $type.";
     }
 
@@ -1363,8 +1359,9 @@ function icms_core_logic_update_9050() {
 
   // The form display hides the topics field unless the listing is manual.
   if (!\Drupal::moduleHandler()->moduleExists('conditional_fields')) {
-    \Drupal::service('module_installer')->install(['conditional_fields']);
-    $messages[] = 'Enabled the conditional_fields module.';
+    $messages[] = \Drupal::service('icms_core_logic.update_config_installer')->installModules(['conditional_fields'])
+      ? 'Enabled the conditional_fields module; its config entities are left to the config import.'
+      : 'Enabled the conditional_fields module.';
   }
 
   $config_entities = [
@@ -1811,6 +1808,10 @@ function icms_core_logic_update_9052() {
   // Library items get one translation per language; the referenced paragraphs
   // are translated through the regular blökkli translate flow.
   if (\Drupal::moduleHandler()->moduleExists('content_translation')) {
+    // Settings the project exports are created from the export (its UUID).
+    if (\Drupal::service('icms_core_logic.update_config_installer')->importConfigEntity('language.content_settings.paragraphs_library_item.paragraphs_library_item')) {
+      $messages[] = 'Created the library item language settings.';
+    }
     $config = ContentLanguageSettings::loadByEntityTypeBundle('paragraphs_library_item', 'paragraphs_library_item');
     if (!$config->getThirdPartySetting('content_translation', 'enabled', FALSE)) {
       $config
@@ -1973,7 +1974,9 @@ function icms_core_logic_update_9054() {
   if (\Drupal::moduleHandler()->moduleExists('single_language_url_prefix')) {
     return (string) new TranslatableMarkup('The single_language_url_prefix module is already enabled.');
   }
-  \Drupal::service('module_installer')->install(['single_language_url_prefix']);
+  if (\Drupal::service('icms_core_logic.update_config_installer')->installModules(['single_language_url_prefix'])) {
+    return (string) new TranslatableMarkup('Enabled the single_language_url_prefix module; its config entities are left to the config import.');
+  }
   return (string) new TranslatableMarkup('Enabled the single_language_url_prefix module.');
 }
 
@@ -1992,8 +1995,9 @@ function icms_core_logic_update_9054() {
  * @see icms_core_logic_update_9059()
  */
 function icms_core_logic_update_9055() {
-  \Drupal::service('module_installer')->install(['email_registration']);
-
+  if (\Drupal::service('icms_core_logic.update_config_installer')->installModules(['email_registration'])) {
+    return (string) new TranslatableMarkup('Installed email_registration; its config entities are left to the config import.');
+  }
   return (string) new TranslatableMarkup('Installed email_registration.');
 }
 
@@ -2141,8 +2145,9 @@ function icms_core_logic_update_9058() {
   $log = [];
 
   if (!\Drupal::moduleHandler()->moduleExists('media_download')) {
-    \Drupal::service('module_installer')->install(['media_download']);
-    $log[] = (string) new TranslatableMarkup('Installed the media_download module.');
+    $log[] = \Drupal::service('icms_core_logic.update_config_installer')->installModules(['media_download'])
+      ? (string) new TranslatableMarkup('Installed the media_download module; its config entities are left to the config import.')
+      : (string) new TranslatableMarkup('Installed the media_download module.');
   }
 
   // Insert the canonical media URL instead of the file URL when an editor
@@ -2223,8 +2228,9 @@ function icms_core_logic_update_9061() {
   $module_handler = \Drupal::moduleHandler();
   $modules = array_filter(['layout_builder', 'navigation'], static fn(string $module): bool => !$module_handler->moduleExists($module));
   if ($modules) {
-    \Drupal::service('module_installer')->install(array_values($modules));
-    $log[] = (string) new TranslatableMarkup('Installed the @modules module(s).', ['@modules' => implode(', ', $modules)]);
+    $log[] = \Drupal::service('icms_core_logic.update_config_installer')->installModules(array_values($modules))
+      ? (string) new TranslatableMarkup('Installed the @modules module(s); their config entities are left to the config import.', ['@modules' => implode(', ', $modules)])
+      : (string) new TranslatableMarkup('Installed the @modules module(s).', ['@modules' => implode(', ', $modules)]);
   }
 
   $gin = \Drupal::configFactory()->getEditable('gin.settings');
