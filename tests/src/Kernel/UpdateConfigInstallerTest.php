@@ -220,6 +220,35 @@ class UpdateConfigInstallerTest extends KernelTestBase {
   }
 
   /**
+   * When the config importer refuses, the exported records are written.
+   */
+  public function testRefusedImportFallsBackToTheExportedRecords(): void {
+    $exported_uuid = $this->exportNavigationAndUninstall();
+    // Config of an extension the site lacks makes the importer refuse.
+    $this->container->get('config.storage')->write('icms_core_logic_missing.settings', ['key' => 'value']);
+
+    $this->assertTrue($this->service()->installModules(['navigation']));
+    $this->assertSame($exported_uuid, Menu::load('content')->uuid());
+    $this->assertSame(['label' => 'Contenu'], $this->activeTranslation());
+    $this->assertNull(Menu::load('navigation-user-links'));
+    $this->assertSame(['' => ['delete' => ['icms_core_logic_missing.settings']]], $this->allChanges(), 'The site matches the export but for the stray config.');
+  }
+
+  /**
+   * The export is transformed once per service instance.
+   */
+  public function testExportIsReadOnce(): void {
+    $this->copyConfig($this->container->get('config.storage'), $this->syncStorage);
+    $service = $this->service();
+    $this->assertFalse($service->installModules(['contact']));
+
+    $this->syncStorage->write('system.menu.later', $this->menuRecord('later', 'Later'));
+    $this->assertFalse($service->importConfigEntity('system.menu.later'), 'The export read before is used.');
+    $service->resetExport();
+    $this->assertTrue($service->importConfigEntity('system.menu.later'));
+  }
+
+  /**
    * Config entities are created from the exported record first.
    */
   public function testImportConfigEntity(): void {

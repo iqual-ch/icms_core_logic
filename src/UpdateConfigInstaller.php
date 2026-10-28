@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\icms_core_logic;
 
 use Drupal\Core\Config\ConfigImporterException;
+use Drupal\Core\Config\Entity\ConfigDependencyManager;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\ConfigImporterFactory;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
@@ -47,6 +49,14 @@ final class UpdateConfigInstaller {
 
   use DependencySerializationTrait;
   use StorageCopyTrait;
+
+  /**
+   * The transformed export, read once per instance.
+   *
+   * The export does not change during an update run, and transforming it
+   * takes seconds on a real site.
+   */
+  private ?StorageInterface $export = NULL;
 
   public function __construct(
     private ModuleInstallerInterface $moduleInstaller,
@@ -92,7 +102,7 @@ final class UpdateConfigInstaller {
       return FALSE;
     }
 
-    $export = $this->importTransformer->transform($this->syncStorage);
+    $export = $this->getExport();
     $exported_modules = $export->read('core.extension')['module'] ?? [];
     if (array_diff($to_install, array_keys($exported_modules))) {
       $this->callAndReInjectIfNeeded(fn () => $this->moduleInstaller->install($modules));
@@ -127,7 +137,8 @@ final class UpdateConfigInstaller {
    * The exported record is imported like the config importer does, with its
    * UUID and translations, so the config import that follows sees no change.
    * Without one, the entity is created from the given record and gets
-   * exported afterwards.
+   * exported afterwards. Config missing from the sync directory skips the
+   * export, so config that only config_split adds to it is not found.
    *
    * @param string $config_name
    *   The config name, e.g. "linkit.linkit_profile.content".
@@ -152,9 +163,11 @@ final class UpdateConfigInstaller {
       return FALSE;
     }
 
-    $export = $this->importTransformer->transform($this->syncStorage);
-    $exported = $export->read($config_name);
-    if (is_array($exported) && $exported) {
+    // Not exported at all, e.g. on the developer's first run: no need to
+    // transform the export.
+    $export = $this->syncStorage->exists($config_name) ? $this->getExport() : NULL;
+    $exported = $export?->read($config_name);
+    if ($export && is_array($exported) && $exported) {
       $this->importFromExport($this->getImportable([$config_name], $export), $export);
       if ($this->activeStorage->exists($config_name)) {
         return TRUE;
@@ -171,6 +184,25 @@ final class UpdateConfigInstaller {
       ->createFromStorageRecord($record)
       ->save();
     return TRUE;
+  }
+
+  /**
+   * Forgets the transformed export, so the next call reads it again.
+   *
+   * @internal
+   *   For tests that change the export between calls.
+   */
+  public function resetExport(): void {
+    $this->export = NULL;
+  }
+
+  /**
+   * The export as the config import reads it, transformed once.
+   */
+  private function getExport(): StorageInterface {
+    // The transformer's storage, kept: later transforms of the unchanged
+    // export write the same content to it.
+    return $this->export ??= $this->importTransformer->transform($this->syncStorage);
   }
 
   /**
@@ -305,8 +337,9 @@ final class UpdateConfigInstaller {
    *
    * Only the given config and its translations are imported; the importer
    * orders them by dependency and saves them in syncing mode, as a config
-   * import does. When it refuses the import, the config import that follows
-   * the updates brings the config.
+   * import does. When it refuses the import, the config is written from the
+   * exported records directly, so a config export after the update does not
+   * drop it either.
    *
    * @param string[] $names
    *   The config names.
@@ -333,11 +366,63 @@ final class UpdateConfigInstaller {
       $this->configImporterFactory->get($comparer->createChangelist())->import();
     }
     catch (ConfigImporterException $e) {
-      $this->loggerFactory->get('icms_core_logic')->warning('Could not import @names from the config export; the config import brings them. @message', [
+      $written = $this->writeFromExport($names, $export);
+      $this->loggerFactory->get('icms_core_logic')->warning('The config importer refused @names; wrote @written from their exported records instead. @message', [
         '@names' => implode(', ', $names),
+        '@written' => $written ? implode(', ', $written) : 'nothing',
         '@message' => $e->getMessage(),
       ]);
     }
+  }
+
+  /**
+   * Writes missing config and its translations from the exported records.
+   *
+   * The fallback of importFromExport(): in dependency order, saved in syncing
+   * mode, keeping the exported UUIDs.
+   *
+   * @param string[] $names
+   *   The config names.
+   * @param \Drupal\Core\Config\StorageInterface $export
+   *   The export.
+   *
+   * @return string[]
+   *   The config names written.
+   */
+  private function writeFromExport(array $names, StorageInterface $export): array {
+    $records = $export->readMultiple($names);
+    $sorted = (new ConfigDependencyManager())->setData($records)->sortAll();
+    $written = [];
+    foreach ($sorted as $name) {
+      if ($this->activeStorage->exists($name)) {
+        continue;
+      }
+      try {
+        $entity_type_id = $this->configManager->getEntityTypeIdByName($name);
+        if ($entity_type_id) {
+          $entity = $this->entityTypeManager->getStorage($entity_type_id)->createFromStorageRecord($records[$name]);
+          assert($entity instanceof ConfigEntityInterface);
+          $entity->setSyncing(TRUE)->save();
+        }
+        else {
+          $this->configManager->getConfigFactory()->getEditable($name)->setData($records[$name])->save(TRUE);
+        }
+        foreach ($export->getAllCollectionNames() as $collection) {
+          $translation = $export->createCollection($collection)->read($name);
+          if ($translation) {
+            $this->activeStorage->createCollection($collection)->write($name, $translation);
+          }
+        }
+        $written[] = $name;
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('icms_core_logic')->error('Could not write @name from the config export; the config import brings it. @message', [
+          '@name' => $name,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+    return $written;
   }
 
   /**
