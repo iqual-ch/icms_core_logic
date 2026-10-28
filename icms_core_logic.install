@@ -606,7 +606,8 @@ function _icms_core_logic_install_conversion_paragraph_bundles(): string {
  * @param string $config_name
  *   The config name.
  * @param string $entity_type_id
- *   Unused: the entity type follows from the config name.
+ *   Unused: the entity type follows from the config name; an unknown one
+ *   throws.
  * @param string $directory
  *   The directory below config/update holding the YAML.
  */
@@ -618,7 +619,7 @@ function _icms_core_logic_import_config_entity(string $config_name, string $enti
   $created = \Drupal::service('icms_core_logic.update_config_installer')
     ->importConfigEntity($config_name, _icms_core_logic_read_exported_config($config_name, $directory));
   if (!$created) {
-    \Drupal::logger('icms_core_logic')->warning('Skipped installing missing config entity @config because its bundled update YAML file could not be read.', ['@config' => $config_name]);
+    \Drupal::logger('icms_core_logic')->warning('Skipped installing missing config entity @config because neither the config export nor its bundled update YAML file has it.', ['@config' => $config_name]);
   }
   return $created;
 }
@@ -1065,7 +1066,7 @@ function icms_core_logic_update_9049() {
   // The linkit widget and matchers require the linkit module.
   if (!\Drupal::moduleHandler()->moduleExists('linkit')) {
     $log .= $installer->installModules(['linkit'])
-      ? "Installed the linkit module; its config entities are left to the config import. \n"
+      ? "Installed the linkit module with its config from the export. \n"
       : "Installed the linkit module. \n";
   }
 
@@ -1180,7 +1181,7 @@ function icms_core_logic_update_9047() {
 
   if (!\Drupal::moduleHandler()->moduleExists('media_bulk_upload')) {
     $messages[] = $installer->installModules(['media_bulk_upload'])
-      ? 'Installed media_bulk_upload module; its config entities are left to the config import.'
+      ? 'Installed media_bulk_upload module with its config from the export.'
       : 'Installed media_bulk_upload module.';
   }
   else {
@@ -1205,12 +1206,16 @@ function icms_core_logic_update_9047() {
     'form_mode' => $has_media_library_form_mode ? 'media_library' : 'default',
     'upload_location' => 'private://media-bulk-upload',
   ];
-  $bulk_config = $entity_type_manager->getStorage('media_bulk_config')->load('images');
+  $storage = $entity_type_manager->getStorage('media_bulk_config');
+  $bulk_config = $storage->load('images');
   if (!$bulk_config) {
-    $installer->importConfigEntity('media_bulk_upload.media_bulk_config.images', [
-      'id' => 'images',
-      'label' => 'Images',
-    ] + $settings);
+    // A form the project exports is created from the export (its UUID).
+    if (!$installer->importConfigEntity('media_bulk_upload.media_bulk_config.images')) {
+      $storage->create([
+        'id' => 'images',
+        'label' => 'Images',
+      ] + $settings)->save();
+    }
     $messages[] = 'Created images bulk upload form.';
   }
   else {
@@ -1360,7 +1365,7 @@ function icms_core_logic_update_9050() {
   // The form display hides the topics field unless the listing is manual.
   if (!\Drupal::moduleHandler()->moduleExists('conditional_fields')) {
     $messages[] = \Drupal::service('icms_core_logic.update_config_installer')->installModules(['conditional_fields'])
-      ? 'Enabled the conditional_fields module; its config entities are left to the config import.'
+      ? 'Enabled the conditional_fields module with its config from the export.'
       : 'Enabled the conditional_fields module.';
   }
 
@@ -1975,7 +1980,7 @@ function icms_core_logic_update_9054() {
     return (string) new TranslatableMarkup('The single_language_url_prefix module is already enabled.');
   }
   if (\Drupal::service('icms_core_logic.update_config_installer')->installModules(['single_language_url_prefix'])) {
-    return (string) new TranslatableMarkup('Enabled the single_language_url_prefix module; its config entities are left to the config import.');
+    return (string) new TranslatableMarkup('Enabled the single_language_url_prefix module with its config from the export.');
   }
   return (string) new TranslatableMarkup('Enabled the single_language_url_prefix module.');
 }
@@ -1996,7 +2001,7 @@ function icms_core_logic_update_9054() {
  */
 function icms_core_logic_update_9055() {
   if (\Drupal::service('icms_core_logic.update_config_installer')->installModules(['email_registration'])) {
-    return (string) new TranslatableMarkup('Installed email_registration; its config entities are left to the config import.');
+    return (string) new TranslatableMarkup('Installed email_registration with its config from the export.');
   }
   return (string) new TranslatableMarkup('Installed email_registration.');
 }
@@ -2146,7 +2151,7 @@ function icms_core_logic_update_9058() {
 
   if (!\Drupal::moduleHandler()->moduleExists('media_download')) {
     $log[] = \Drupal::service('icms_core_logic.update_config_installer')->installModules(['media_download'])
-      ? (string) new TranslatableMarkup('Installed the media_download module; its config entities are left to the config import.')
+      ? (string) new TranslatableMarkup('Installed the media_download module with its config from the export.')
       : (string) new TranslatableMarkup('Installed the media_download module.');
   }
 
@@ -2229,7 +2234,7 @@ function icms_core_logic_update_9061() {
   $modules = array_filter(['layout_builder', 'navigation'], static fn(string $module): bool => !$module_handler->moduleExists($module));
   if ($modules) {
     $log[] = \Drupal::service('icms_core_logic.update_config_installer')->installModules(array_values($modules))
-      ? (string) new TranslatableMarkup('Installed the @modules module(s); their config entities are left to the config import.', ['@modules' => implode(', ', $modules)])
+      ? (string) new TranslatableMarkup('Installed the @modules module(s) with their config from the export.', ['@modules' => implode(', ', $modules)])
       : (string) new TranslatableMarkup('Installed the @modules module(s).', ['@modules' => implode(', ', $modules)]);
   }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\icms_core_logic\Kernel;
 
 use Drupal\Component\Serialization\Yaml;
+use Drupal\Core\Config\MemoryStorage;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -77,7 +78,9 @@ class UpdateConfigInstallerTest extends KernelTestBase {
     $exported_uuid = $this->exportNavigationAndUninstall();
 
     $this->container->get('module_installer')->install(['navigation']);
-    $this->writeActiveTranslation();
+    // Locale writes the French label on install from the interface
+    // translation, so it already matches the export before the import.
+    $this->container->get('config.storage')->createCollection('language.fr')->write('system.menu.content', ['label' => 'Contenu']);
     $this->assertNotSame($exported_uuid, Menu::load('content')->uuid());
     $this->assertContains('system.menu.content', $this->changelist('delete'));
     $this->assertContains('system.menu.content', $this->changelist('create'));
@@ -88,24 +91,25 @@ class UpdateConfigInstallerTest extends KernelTestBase {
   }
 
   /**
-   * An exported module is installed like the config import installs it.
+   * An exported module is installed with its config from the export.
+   *
+   * The site then matches the export: a config export right after the update
+   * (make update runs no config import) changes nothing, nor does an import.
    */
-  public function testExportedModuleLeavesConfigEntitiesToImport(): void {
-    $exported_uuid = $this->exportNavigationAndUninstall();
+  public function testExportedModuleIsInstalledFromTheExport(): void {
+    // The dependencies are installed along.
+    $exported_uuid = $this->exportNavigationAndUninstall(['layout_builder', 'layout_discovery', 'contextual']);
 
     $this->assertTrue($this->service()->installModules(['navigation']));
-    $this->assertTrue($this->container->get('module_handler')->moduleExists('navigation'));
+    $module_handler = $this->container->get('module_handler');
+    $this->assertTrue($module_handler->moduleExists('navigation'));
+    $this->assertTrue($module_handler->moduleExists('layout_builder'));
     $this->assertFalse($this->container->get('config.installer')->isSyncing(), 'Syncing is reset in the current container.');
-    $this->assertNull(Menu::load('content'), 'Config entities are left to the import.');
     $this->assertSame(99, $this->config('navigation.settings')->get('logo.max.height'), 'Simple config comes from the export.');
-
-    $this->writeActiveTranslation();
-    $this->configImporter()->import();
     $this->assertSame($exported_uuid, Menu::load('content')->uuid());
     $this->assertSame(['label' => 'Contenu'], $this->activeTranslation());
     $this->assertNull(Menu::load('navigation-user-links'), 'A menu the project deleted stays deleted.');
-    $comparer = new StorageComparer($this->syncStorage, $this->container->get('config.storage'));
-    $this->assertFalse($comparer->createChangelist()->hasChanges(), 'Nothing left to import.');
+    $this->assertSame([], $this->allChanges(), 'The site matches the export.');
 
     // Later installs create their config entities again.
     $this->container->get('module_installer')->install(['contact']);
@@ -138,22 +142,34 @@ class UpdateConfigInstallerTest extends KernelTestBase {
   }
 
   /**
-   * The services the install replaced are re-injected.
+   * The services a normal install replaced are re-injected.
    */
   public function testServicesAreReinjectedAfterInstall(): void {
     $this->copyConfig($this->container->get('config.storage'), $this->syncStorage);
     $service = $this->service();
     $this->container->get('entity_type.manager')->getDefinitions();
 
-    $service->installModules(['field']);
-    $this->assertTrue($service->importConfigEntity('field.storage.user.field_weight', [
-      'id' => 'user.field_weight',
-      'field_name' => 'field_weight',
-      'entity_type' => 'user',
-      'type' => 'integer',
-      'settings' => ['unsigned' => FALSE, 'size' => 'normal'],
-    ]), 'The entity type manager knows the field module.');
+    $this->assertFalse($service->installModules(['field']));
+    $this->assertTrue($service->importConfigEntity('field.storage.user.field_weight', $this->fieldStorageRecord()), 'The entity type manager knows the field module.');
     $this->assertNotNull(FieldStorageConfig::loadByName('user', 'field_weight'));
+  }
+
+  /**
+   * The services an install from the export replaced are re-injected.
+   */
+  public function testServicesAreReinjectedAfterInstallFromTheExport(): void {
+    $this->container->get('module_installer')->install(['field']);
+    $this->copyConfig($this->container->get('config.storage'), $this->syncStorage);
+    $record = ['uuid' => 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'] + $this->fieldStorageRecord();
+    $this->syncStorage->write('field.storage.user.field_weight', $record);
+    $this->container->get('module_installer')->uninstall(['field']);
+    $service = $this->service();
+    $this->container->get('entity_type.manager')->getDefinitions();
+
+    $this->assertTrue($service->installModules(['field']));
+    $this->assertTrue($service->importConfigEntity('field.storage.user.field_weight'), 'The entity type manager knows the field module.');
+    $this->assertSame($record['uuid'], FieldStorageConfig::loadByName('user', 'field_weight')->uuid());
+    $this->assertSame([], $this->allChanges(), 'Saved as exported.');
   }
 
   /**
@@ -179,16 +195,43 @@ class UpdateConfigInstallerTest extends KernelTestBase {
   }
 
   /**
+   * During a config import, the import's syncing state is kept.
+   */
+  public function testCallerSyncingStateIsKept(): void {
+    $this->exportNavigationAndUninstall();
+
+    // Called while a config import installs modules.
+    $this->container->get('config.installer')->setSyncing(TRUE)->setSourceStorage($this->syncStorage);
+    $this->assertFalse($this->service()->installModules(['navigation']));
+    $config_installer = \Drupal::service('config.installer');
+    $this->assertTrue($config_installer->isSyncing());
+    $this->assertSame($this->syncStorage, $config_installer->getSourceStorage());
+    $this->assertNull(Menu::load('content'), 'The running import creates the config entities.');
+    $config_installer->setSyncing(FALSE);
+
+    // A source storage set without syncing is kept as well.
+    $this->container->get('module_installer')->uninstall(['navigation']);
+    $source_storage = new MemoryStorage();
+    $this->container->get('config.installer')->setSourceStorage($source_storage);
+    $this->assertTrue($this->service()->installModules(['navigation']));
+    $config_installer = \Drupal::service('config.installer');
+    $this->assertFalse($config_installer->isSyncing());
+    $this->assertSame($source_storage, $config_installer->getSourceStorage());
+  }
+
+  /**
    * Config entities are created from the exported record first.
    */
   public function testImportConfigEntity(): void {
     $uuid = '9f3b2b7e-4a1c-4d55-9c0e-0a1b2c3d4e5f';
     $this->syncStorage->write('system.menu.exported', $this->menuRecord('exported', 'Exported') + ['uuid' => $uuid]);
+    $this->syncStorage->createCollection('language.fr')->write('system.menu.exported', ['label' => 'Exporté']);
     $service = $this->service();
 
     $this->assertTrue($service->importConfigEntity('system.menu.exported', $this->menuRecord('exported', 'Own')));
     $this->assertSame($uuid, Menu::load('exported')->uuid());
     $this->assertSame('Exported', Menu::load('exported')->label());
+    $this->assertSame(['label' => 'Exporté'], $this->container->get('config.storage')->createCollection('language.fr')->read('system.menu.exported'), 'The translation comes along.');
 
     $this->assertTrue($service->importConfigEntity('system.menu.own', $this->menuRecord('own', 'Own')));
     $this->assertSame('Own', Menu::load('own')->label());
@@ -199,21 +242,30 @@ class UpdateConfigInstallerTest extends KernelTestBase {
     $this->assertSame('Own', Menu::load('own')->label());
     $this->assertFalse($service->importConfigEntity('system.menu.nowhere'));
     $this->assertNull(Menu::load('nowhere'));
+
+    $this->expectException(\InvalidArgumentException::class);
+    $service->importConfigEntity('system.site');
   }
 
   /**
    * The helper of the released update hooks prefers the export too.
    */
   public function testImportHelperPrefersTheExportedRecord(): void {
+    // Relative to config/update of icms_core_logic.
+    $directory = '../../tests/fixtures/config_update';
+
+    $this->assertTrue(_icms_core_logic_import_config_entity('system.menu.bundled', 'menu', $directory));
+    $this->assertSame('Bundled', Menu::load('bundled')->label());
+    $this->assertFalse(_icms_core_logic_import_config_entity('system.menu.bundled', 'menu', $directory), 'Existing config is left alone.');
+    Menu::load('bundled')->delete();
+
     $uuid = '9f3b2b7e-4a1c-4d55-9c0e-0a1b2c3d4e5f';
-    $this->syncStorage->write('system.menu.exported', $this->menuRecord('exported', 'Exported') + ['uuid' => $uuid]);
+    $this->syncStorage->write('system.menu.bundled', $this->menuRecord('bundled', 'Exported') + ['uuid' => $uuid]);
+    $this->assertTrue(_icms_core_logic_import_config_entity('system.menu.bundled', 'menu', $directory));
+    $this->assertSame($uuid, Menu::load('bundled')->uuid());
+    $this->assertSame('Exported', Menu::load('bundled')->label());
 
-    $this->assertTrue(_icms_core_logic_import_config_entity('system.menu.exported', 'menu', '9050'));
-    $this->assertSame($uuid, Menu::load('exported')->uuid());
-    $this->assertSame('Exported', Menu::load('exported')->label());
-
-    $this->assertFalse(_icms_core_logic_import_config_entity('system.menu.exported', 'menu', '9050'));
-    $this->assertFalse(_icms_core_logic_import_config_entity('system.menu.nowhere', 'menu', '9050'));
+    $this->assertFalse(_icms_core_logic_import_config_entity('system.menu.nowhere', 'menu', $directory));
     $this->assertNull(Menu::load('nowhere'));
   }
 
@@ -224,12 +276,14 @@ class UpdateConfigInstallerTest extends KernelTestBase {
    * French menu label, a changed setting and without one of its menus. The
    * other environment does not have navigation yet.
    *
+   * @param string[] $dependencies
+   *   Dependencies of navigation the other environment lacks too.
+   *
    * @return string
    *   The exported UUID of system.menu.content.
    */
-  protected function exportNavigationAndUninstall(): string {
-    $installer = $this->container->get('module_installer');
-    $installer->install(['navigation']);
+  protected function exportNavigationAndUninstall(array $dependencies = []): string {
+    $this->container->get('module_installer')->install(['navigation']);
     $this->copyConfig($this->container->get('config.storage'), $this->syncStorage);
     $this->syncStorage->createCollection('language.fr')->write('system.menu.content', ['label' => 'Contenu']);
     $settings = $this->syncStorage->read('navigation.settings');
@@ -237,19 +291,12 @@ class UpdateConfigInstallerTest extends KernelTestBase {
     $this->syncStorage->write('navigation.settings', $settings);
     $this->syncStorage->delete('system.menu.navigation-user-links');
 
-    $this->container->get('module_installer')->uninstall(['navigation']);
+    $this->container->get('module_installer')->uninstall(['navigation', ...$dependencies]);
     $this->assertNull(Menu::load('content'));
+    foreach ($dependencies as $module) {
+      $this->assertFalse($this->container->get('module_handler')->moduleExists($module));
+    }
     return $this->syncStorage->read('system.menu.content')['uuid'];
-  }
-
-  /**
-   * Writes the French menu label to the active config.
-   *
-   * Locale does so on install from the interface translation, so the active
-   * label matches the export before the import.
-   */
-  protected function writeActiveTranslation(): void {
-    $this->container->get('config.storage')->createCollection('language.fr')->write('system.menu.content', ['label' => 'Contenu']);
   }
 
   /**
@@ -265,6 +312,19 @@ class UpdateConfigInstallerTest extends KernelTestBase {
   protected function changelist(string $op): array {
     $comparer = new StorageComparer($this->syncStorage, $this->container->get('config.storage'));
     return $comparer->createChangelist()->getChangelist($op);
+  }
+
+  /**
+   * Everything a config import would change, by collection and operation.
+   */
+  protected function allChanges(): array {
+    $comparer = new StorageComparer($this->syncStorage, $this->container->get('config.storage'));
+    $comparer->createChangelist();
+    $changes = [];
+    foreach ($comparer->getAllCollectionNames() as $collection) {
+      $changes += array_filter([$collection => array_filter($comparer->getChangelist(NULL, $collection))]);
+    }
+    return $changes;
   }
 
   /**
@@ -286,6 +346,29 @@ class UpdateConfigInstallerTest extends KernelTestBase {
       'label' => $label,
       'description' => '',
       'locked' => FALSE,
+    ];
+  }
+
+  /**
+   * A field storage record as exported, without UUID.
+   */
+  protected function fieldStorageRecord(): array {
+    return [
+      'langcode' => 'en',
+      'status' => TRUE,
+      'dependencies' => ['module' => ['user']],
+      'id' => 'user.field_weight',
+      'field_name' => 'field_weight',
+      'entity_type' => 'user',
+      'type' => 'integer',
+      'settings' => ['unsigned' => FALSE, 'size' => 'normal'],
+      'module' => 'core',
+      'locked' => FALSE,
+      'cardinality' => 1,
+      'translatable' => TRUE,
+      'indexes' => [],
+      'persist_with_no_fields' => FALSE,
+      'custom_storage' => FALSE,
     ];
   }
 
