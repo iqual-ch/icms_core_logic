@@ -182,6 +182,7 @@ class UpdateConfigInstallerTest extends KernelTestBase {
     $this->syncStorage->write('core.extension', $extension);
 
     // The test module fails in hook_install(), after the container rebuild.
+    \Drupal::state()->set('icms_core_logic_update_test.fail_install', TRUE);
     $container_id = spl_object_id(\Drupal::getContainer());
     try {
       $this->service()->installModules(['icms_core_logic_update_test']);
@@ -235,6 +236,35 @@ class UpdateConfigInstallerTest extends KernelTestBase {
   }
 
   /**
+   * When the config importer fails to save config, its record is written.
+   */
+  public function testFailedSaveFallsBackToTheExportedRecord(): void {
+    $this->enableModules(['icms_core_logic_update_test']);
+    $exported_uuid = $this->exportNavigationAndUninstall();
+    \Drupal::state()->set('icms_core_logic_update_test.fail_save', 'content');
+
+    $this->assertTrue($this->service()->installModules(['navigation']));
+    $this->assertNull(\Drupal::state()->get('icms_core_logic_update_test.fail_save'), 'The importer tried to save the menu.');
+    $this->assertSame($exported_uuid, Menu::load('content')->uuid());
+    $this->assertSame(['label' => 'Contenu'], $this->activeTranslation());
+    $this->assertSame([], $this->allChanges(), 'The site matches the export.');
+  }
+
+  /**
+   * Only the config the install would create is imported.
+   */
+  public function testOnlyConfigOfTheInstallIsImported(): void {
+    $this->exportNavigationAndUninstall();
+    // Exported config of a later update, depending on navigation.
+    $this->syncStorage->write('system.menu.pending', ['uuid' => '0c1d2e3f-4a5b-4c6d-8e7f-8091a2b3c4d5'] + $this->menuRecord('pending', 'Pending', ['enforced' => ['module' => ['navigation']]]));
+
+    $this->assertTrue($this->service()->installModules(['navigation']));
+    $this->assertNotNull(Menu::load('content'));
+    $this->assertNull(Menu::load('pending'), 'The later update creates it.');
+    $this->assertSame(['' => ['create' => ['system.menu.pending']]], $this->allChanges());
+  }
+
+  /**
    * The export is transformed once per service instance.
    */
   public function testExportIsReadOnce(): void {
@@ -271,6 +301,13 @@ class UpdateConfigInstallerTest extends KernelTestBase {
     $this->assertSame('Own', Menu::load('own')->label());
     $this->assertFalse($service->importConfigEntity('system.menu.nowhere'));
     $this->assertNull(Menu::load('nowhere'));
+
+    // An exported record with unmet dependencies is not used.
+    $this->syncStorage->write('system.menu.broken', ['uuid' => '1d2e3f4a-5b6c-4d7e-9f80-91a2b3c4d5e6'] + $this->menuRecord('broken', 'Broken', ['config' => ['system.menu.missing']]));
+    $service->resetExport();
+    $this->assertTrue($service->importConfigEntity('system.menu.broken', $this->menuRecord('broken', 'Own')));
+    $this->assertSame('Own', Menu::load('broken')->label());
+    $this->assertNotSame('1d2e3f4a-5b6c-4d7e-9f80-91a2b3c4d5e6', Menu::load('broken')->uuid());
 
     $this->expectException(\InvalidArgumentException::class);
     $service->importConfigEntity('system.site');
@@ -366,11 +403,11 @@ class UpdateConfigInstallerTest extends KernelTestBase {
   /**
    * A menu record as exported.
    */
-  protected function menuRecord(string $id, string $label): array {
+  protected function menuRecord(string $id, string $label, array $dependencies = []): array {
     return [
       'langcode' => 'en',
       'status' => TRUE,
-      'dependencies' => [],
+      'dependencies' => $dependencies,
       'id' => $id,
       'label' => $label,
       'description' => '',

@@ -10,5 +10,7 @@
  */
 function icms_core_logic_update_test_install(): void {
   // Fails after the module installer rebuilt the container.
-  throw new \RuntimeException('icms_core_logic_update_test failed to install.');
+  if (\Drupal::state()->get('icms_core_logic_update_test.fail_install')) {
+    throw new \RuntimeException('icms_core_logic_update_test failed to install.');
+  }
 }

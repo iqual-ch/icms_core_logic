@@ -1,6 +1,6 @@
 name: 'ICMS core logic update test'
 type: module
-description: 'Fails its installation, to test UpdateConfigInstaller.'
+description: 'Fails installs and saves on request, to test UpdateConfigInstaller.'
 package: Testing
 hidden: true
 core_version_requirement: ^11

@@ -36,4 +36,4 @@ services:
     arguments: ['@paragraphs_blokkli.config', '@icms_core_logic.backend_domain', '@entity.repository', '@current_user', '@request_stack']
   icms_core_logic.update_config_installer:
     class: Drupal\icms_core_logic\UpdateConfigInstaller
-    arguments: ['@module_installer', '@module_handler', '@extension.list.module', '@config.installer', '@config.manager', '@entity_type.manager', '@config.storage', '@config.storage.sync', '@config.import_transformer', '@Drupal\Core\Config\ConfigImporterFactory', '@logger.factory']
+    arguments: ['@module_installer', '@module_handler', '@extension.list.module', '@config.installer', '@config.manager', '@entity_type.manager', '@config.storage', '@config.storage.sync', '@config.import_transformer', '@Drupal\Core\Config\ConfigImporterFactory', '@logger.factory', '@lock.persistent', '@event_dispatcher', '@config.typed']

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\icms_core_logic;
 
+use Drupal\Core\Config\Config;
+use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\ConfigImporterException;
 use Drupal\Core\Config\Entity\ConfigDependencyManager;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
@@ -14,15 +16,19 @@ use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\ImportStorageTransformer;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Config\MemoryStorage;
+use Drupal\Core\Config\StorableConfigBase;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Config\StorageCopyTrait;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Installs modules and config entities from update hooks like a config import.
@@ -51,10 +57,13 @@ final class UpdateConfigInstaller {
   use StorageCopyTrait;
 
   /**
-   * The transformed export, read once per instance.
+   * The transformed export, once transformed by this instance.
    *
-   * The export does not change during an update run, and transforming it
-   * takes seconds on a real site.
+   * It is the transformer's live storage (the config_import table), kept
+   * because transforming takes seconds on a real site. Later transforms of
+   * the unchanged sync directory write the same content to it. Update hooks
+   * fetch the service anew, so after a container rebuild a new instance
+   * transforms again.
    */
   private ?StorageInterface $export = NULL;
 
@@ -70,6 +79,9 @@ final class UpdateConfigInstaller {
     private ImportStorageTransformer $importTransformer,
     private ConfigImporterFactory $configImporterFactory,
     private LoggerChannelFactoryInterface $loggerFactory,
+    private LockBackendInterface $persistentLock,
+    private EventDispatcherInterface $eventDispatcher,
+    private TypedConfigManagerInterface $typedConfigManager,
   ) {}
 
   /**
@@ -78,11 +90,12 @@ final class UpdateConfigInstaller {
    * When the exported core.extension lists every module to install, including
    * the dependencies installed along, they are installed in syncing mode like
    * the config importer does: their simple config is written from the export.
-   * Their config entities and optional config, and exported config depending
-   * on them, are then imported from the export. Config the project deleted
-   * from its export is not created. Otherwise the modules are installed
-   * normally. Installed modules are skipped; during a config import, the
-   * modules are installed in its syncing mode and it creates their config.
+   * The config a normal install would create (their config/install and
+   * config/optional, other modules' optional config depending on them) is
+   * then imported from the export, as far as the export has it. Config the
+   * project deleted from its export is not created. Otherwise the modules are
+   * installed normally. Installed modules are skipped; during a config import,
+   * the modules are installed in its syncing mode and it creates their config.
    *
    * @param string[] $modules
    *   The modules to install.
@@ -136,7 +149,8 @@ final class UpdateConfigInstaller {
    *
    * The exported record is imported like the config importer does, with its
    * UUID and translations, so the config import that follows sees no change.
-   * Without one, the entity is created from the given record and gets
+   * Without one, or when the exported record depends on config or extensions
+   * the site lacks, the entity is created from the given record and gets
    * exported afterwards. Config missing from the sync directory skips the
    * export, so config that only config_split adds to it is not found.
    *
@@ -168,13 +182,12 @@ final class UpdateConfigInstaller {
     $export = $this->syncStorage->exists($config_name) ? $this->getExport() : NULL;
     $exported = $export?->read($config_name);
     if ($export && is_array($exported) && $exported) {
+      // An exported record with unmet dependencies is unusable: the hook's own
+      // record is created instead, as before the project exported it.
       $this->importFromExport($this->getImportable([$config_name], $export), $export);
       if ($this->activeStorage->exists($config_name)) {
         return TRUE;
       }
-      // It depends on config the site lacks, which the importer refuses. The
-      // exported record still keeps the UUID.
-      $record = $exported;
     }
     if (!$record) {
       return FALSE;
@@ -233,11 +246,12 @@ final class UpdateConfigInstaller {
   }
 
   /**
-   * The exported config a config import would create for installed modules.
+   * The exported config a normal install of the modules would create.
    *
-   * That is the config missing from the site that ships with the modules
-   * (config/install, config/optional) or depends on them, directly or through
-   * other such config.
+   * That is the modules' config/install and config/optional, and the
+   * config/optional of other installed modules that depends on them, as far
+   * as the export has it and the site lacks it. Other exported config the
+   * site lacks is left alone: later update hooks may create it themselves.
    *
    * @param string[] $modules
    *   The installed modules.
@@ -250,32 +264,29 @@ final class UpdateConfigInstaller {
   private function getModuleConfig(array $modules, StorageInterface $export): array {
     $shipped = [];
     foreach ($modules as $module) {
-      $path = $this->moduleExtensionList->getPath($module);
       foreach ([InstallStorage::CONFIG_INSTALL_DIRECTORY, InstallStorage::CONFIG_OPTIONAL_DIRECTORY] as $directory) {
-        if (is_dir("$path/$directory")) {
-          array_push($shipped, ...(new FileStorage("$path/$directory"))->listAll());
+        array_push($shipped, ...$this->getShippedConfig($module, $directory)->listAll());
+      }
+    }
+    foreach (array_diff(array_keys($this->moduleHandler->getModuleList()), $modules) as $module) {
+      $optional = $this->getShippedConfig($module, InstallStorage::CONFIG_OPTIONAL_DIRECTORY);
+      foreach ($optional->readMultiple($optional->listAll()) as $name => $record) {
+        if (array_intersect($this->getDependencies($record, 'module'), $modules) || array_intersect($this->getDependencies($record, 'config'), $shipped)) {
+          $shipped[] = $name;
         }
       }
     }
 
-    $records = $export->readMultiple(array_values(array_diff($export->listAll(), $this->activeStorage->listAll())));
-    $selected = [];
-    do {
-      $added = FALSE;
-      foreach ($records as $name => $record) {
-        if (isset($selected[$name])) {
-          continue;
-        }
-        if (in_array($name, $shipped, TRUE)
-          || array_intersect($this->getDependencies($record, 'module'), $modules)
-          || array_intersect($this->getDependencies($record, 'config'), array_keys($selected))) {
-          $selected[$name] = TRUE;
-          $added = TRUE;
-        }
-      }
-    } while ($added);
+    $names = array_diff(array_intersect(array_unique($shipped), $export->listAll()), $this->activeStorage->listAll());
+    return $this->getImportable(array_values($names), $export);
+  }
 
-    return $this->getImportable(array_keys($selected), $export);
+  /**
+   * The config a module ships in a directory.
+   */
+  private function getShippedConfig(string $module, string $directory): StorageInterface {
+    // Lists nothing when the directory does not exist.
+    return new FileStorage($this->moduleExtensionList->getPath($module) . '/' . $directory);
   }
 
   /**
@@ -316,7 +327,7 @@ final class UpdateConfigInstaller {
 
     $skipped = array_diff($names, array_keys($records));
     if ($skipped) {
-      $this->loggerFactory->get('icms_core_logic')->notice('Left @names to the config import: they depend on config or extensions the site lacks.', ['@names' => implode(', ', $skipped)]);
+      $this->loggerFactory->get('icms_core_logic')->warning('Not importing @names from the config export: they depend on config or extensions the site lacks.', ['@names' => implode(', ', $skipped)]);
     }
     return array_keys($records);
   }
@@ -337,9 +348,9 @@ final class UpdateConfigInstaller {
    *
    * Only the given config and its translations are imported; the importer
    * orders them by dependency and saves them in syncing mode, as a config
-   * import does. When it refuses the import, the config is written from the
-   * exported records directly, so a config export after the update does not
-   * drop it either.
+   * import does. Config the importer refuses or fails to save is written
+   * from the exported records directly, so a config export after the update
+   * does not drop it either.
    *
    * @param string[] $names
    *   The config names.
@@ -362,15 +373,30 @@ final class UpdateConfigInstaller {
     }
 
     $comparer = new StorageComparer($source, $this->activeStorage);
+    $importer = $this->configImporterFactory->get($comparer->createChangelist());
+    $lock_available = $this->persistentLock->lockMayBeAvailable(ConfigImporter::LOCK_NAME);
     try {
-      $this->configImporterFactory->get($comparer->createChangelist())->import();
+      $importer->import();
+      // The importer logs failed saves as errors and carries on.
+      $errors = $importer->getErrors();
     }
     catch (ConfigImporterException $e) {
-      $written = $this->writeFromExport($names, $export);
-      $this->loggerFactory->get('icms_core_logic')->warning('The config importer refused @names; wrote @written from their exported records instead. @message', [
+      $errors = [$e->getMessage()];
+    }
+    finally {
+      // The importer releases its lock when it finishes, not when it fails.
+      if ($lock_available && !$this->persistentLock->lockMayBeAvailable(ConfigImporter::LOCK_NAME)) {
+        $this->persistentLock->release(ConfigImporter::LOCK_NAME);
+      }
+    }
+
+    $missing = array_values(array_filter($names, fn (string $name): bool => !$this->activeStorage->exists($name)));
+    if ($errors || $missing) {
+      $written = $this->writeFromExport($missing, $export);
+      $this->loggerFactory->get('icms_core_logic')->warning('Importing @names from the config export failed; wrote @written from their exported records instead. @errors', [
         '@names' => implode(', ', $names),
         '@written' => $written ? implode(', ', $written) : 'nothing',
-        '@message' => $e->getMessage(),
+        '@errors' => implode(' ', array_map('strval', $errors)),
       ]);
     }
   }
@@ -408,9 +434,9 @@ final class UpdateConfigInstaller {
           $this->configManager->getConfigFactory()->getEditable($name)->setData($records[$name])->save(TRUE);
         }
         foreach ($export->getAllCollectionNames() as $collection) {
-          $translation = $export->createCollection($collection)->read($name);
-          if ($translation) {
-            $this->activeStorage->createCollection($collection)->write($name, $translation);
+          $data = $export->createCollection($collection)->read($name);
+          if ($data) {
+            $this->getCollectionConfig($name, $collection)->setData($data)->save();
           }
         }
         $written[] = $name;
@@ -423,6 +449,20 @@ final class UpdateConfigInstaller {
       }
     }
     return $written;
+  }
+
+  /**
+   * A config object of a collection, as ConfigImporter::importConfig() makes it.
+   *
+   * The collection's override service (e.g. language overrides) saves it with
+   * its events, so locale records imported translations as customized.
+   */
+  private function getCollectionConfig(string $name, string $collection): StorableConfigBase {
+    $override = $this->configManager->getConfigCollectionInfo()->getOverrideService($collection);
+    if ($override) {
+      return $override->createConfigObject($name, $collection);
+    }
+    return new Config($name, $this->activeStorage->createCollection($collection), $this->eventDispatcher, $this->typedConfigManager);
   }
 
   /**

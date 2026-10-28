@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Hooks of the ICMS core logic update test module.
+ */
+
+use Drupal\system\MenuInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_presave() for menu entities.
+ *
+ * Fails the first save of the menu named in state.
+ */
+function icms_core_logic_update_test_menu_presave(MenuInterface $menu): void {
+  $state = \Drupal::state();
+  if ($state->get('icms_core_logic_update_test.fail_save') === $menu->id()) {
+    $state->delete('icms_core_logic_update_test.fail_save');
+    throw new \RuntimeException('Saving the menu failed.');
+  }
+}
