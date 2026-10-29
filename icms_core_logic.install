@@ -2330,3 +2330,31 @@ function icms_core_logic_update_9065() {
 
   return (string) new TranslatableMarkup('Lowered the page cache max-age to one hour.');
 }
+
+/**
+ * Grant "access navigation" to the backend roles (ICMS-831).
+ *
+ * Core navigation replaced the toolbar in 1.7 (update 9061), but renders only
+ * for "access navigation": editors got the site shell without the navigation
+ * sidebar and top bar, on every backend page. Every role with "access
+ * toolbar" gets it, and the client administrator, who had no toolbar either.
+ */
+function icms_core_logic_update_9066() {
+  if (!\Drupal::moduleHandler()->moduleExists('navigation')) {
+    return (string) new TranslatableMarkup('Core navigation is not installed; nothing to do.');
+  }
+
+  $granted = [];
+  foreach (Role::loadMultiple() as $role) {
+    if (!$role->isAdmin() && ($role->hasPermission('access toolbar') || $role->id() === 'administrator_client') && !$role->hasPermission('access navigation')) {
+      $role->grantPermission('access navigation');
+      $role->save();
+      $granted[] = $role->id();
+    }
+  }
+
+  if (!$granted) {
+    return (string) new TranslatableMarkup('No roles needed the "access navigation" permission.');
+  }
+  return (string) new TranslatableMarkup('Granted "access navigation" to: @roles.', ['@roles' => implode(', ', $granted)]);
+}
