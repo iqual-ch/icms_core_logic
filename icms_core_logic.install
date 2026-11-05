@@ -2358,3 +2358,37 @@ function icms_core_logic_update_9066() {
   }
   return (string) new TranslatableMarkup('Granted "access navigation" to: @roles.', ['@roles' => implode(', ', $granted)]);
 }
+
+/**
+ * Let link fields find content of every content type again (ICMS-841).
+ *
+ * Update 9049 moved the link fields to the linkit profile "content", whose
+ * node matcher only allowed published pages. Core's link widget found every
+ * content type, and unpublished content for editors who bypass node access.
+ * A bundle list a project changed is kept.
+ */
+function icms_core_logic_update_9067() {
+  $profile = \Drupal::entityTypeManager()->getStorage('linkit_profile')->load('content');
+  $matcher = $profile?->getMatcherByEntityType('node');
+  if (!$matcher) {
+    return (string) new TranslatableMarkup('The linkit profile "content" has no node matcher; nothing to do.');
+  }
+
+  $log = [];
+  $configuration = $matcher->getConfiguration();
+  if (($configuration['settings']['bundles'] ?? []) === ['icms_page' => 'icms_page']) {
+    $configuration['settings']['bundles'] = [];
+    $log[] = (string) new TranslatableMarkup('The linkit profile "content" now matches every content type.');
+  }
+  if (empty($configuration['settings']['include_unpublished'])) {
+    $configuration['settings']['include_unpublished'] = TRUE;
+    $log[] = (string) new TranslatableMarkup('The linkit profile "content" now matches unpublished content.');
+  }
+  if (!$log) {
+    return (string) new TranslatableMarkup('The node matcher of the linkit profile "content" needs no change.');
+  }
+  $profile->setMatcherConfig($matcher->getUuid(), $configuration);
+  $profile->save();
+
+  return implode(' ', $log);
+}
