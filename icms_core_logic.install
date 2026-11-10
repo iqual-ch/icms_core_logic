@@ -1072,12 +1072,15 @@ function icms_core_logic_update_9049() {
 
   // Ensure the "content" linkit profile exists and can match media documents.
   $profile_storage = \Drupal::entityTypeManager()->getStorage('linkit_profile');
+  // Update hooks load the config entities they save without translations: in
+  // drush, load() applies the default language's config translation, and the
+  // save writes it into the base config (ICMS-839).
   /** @var \Drupal\linkit\ProfileInterface|null $profile */
-  $profile = $profile_storage->load('content');
+  $profile = $profile_storage->loadOverrideFree('content');
   $profile_changed = FALSE;
   // A profile the project exports is created from the export (its UUID).
   if (!$profile && $installer->importConfigEntity('linkit.linkit_profile.content')) {
-    $profile = $profile_storage->load('content');
+    $profile = $profile_storage->loadOverrideFree('content');
     $log .= "Created the missing linkit profile \"content\". \n";
   }
   if (!$profile) {
@@ -1122,7 +1125,7 @@ function icms_core_logic_update_9049() {
   // Switch every link field from the plain link widget to the linkit widget,
   // keeping the existing weight, region and placeholder settings.
   $display_storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
-  foreach ($display_storage->loadMultiple() as $form_display) {
+  foreach ($display_storage->loadMultipleOverrideFree() as $form_display) {
     $changed = FALSE;
     foreach ($form_display->getComponents() as $name => $component) {
       if (($component['type'] ?? '') === 'link_default') {
@@ -1207,7 +1210,7 @@ function icms_core_logic_update_9047() {
     'upload_location' => 'private://media-bulk-upload',
   ];
   $storage = $entity_type_manager->getStorage('media_bulk_config');
-  $bulk_config = $storage->load('images');
+  $bulk_config = $storage->loadOverrideFree('images');
   if (!$bulk_config) {
     // A form the project exports is created from the export (its UUID).
     if (!$installer->importConfigEntity('media_bulk_upload.media_bulk_config.images')) {
@@ -1228,7 +1231,7 @@ function icms_core_logic_update_9047() {
 
   // Alt text can not be entered per file during bulk upload, so it must be
   // optional for bulk-created image media to validate.
-  $field = FieldConfig::load('media.image.field_media_image');
+  $field = $entity_type_manager->getStorage('field_config')->loadOverrideFree('media.image.field_media_image');
   if ($field && $field->getSetting('alt_field_required')) {
     $field->setSetting('alt_field_required', FALSE);
     $field->save();
@@ -1236,7 +1239,7 @@ function icms_core_logic_update_9047() {
   }
 
   foreach (['content_editor', 'administrator_client'] as $role_id) {
-    $role = Role::load($role_id);
+    $role = $entity_type_manager->getStorage('user_role')->loadOverrideFree($role_id);
     if ($role && !$role->hasPermission('use images bulk upload form')) {
       $role->grantPermission('use images bulk upload form');
       $role->save();
@@ -1315,7 +1318,7 @@ function icms_core_logic_update_9048() {
       continue;
     }
 
-    $form_display = EntityFormDisplay::load("node.$type.default");
+    $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->loadOverrideFree("node.$type.default");
     if ($form_display && !$form_display->getComponent('field_icms_weight')) {
       // Show the field first inside the Teaser Settings group.
       $weight = 18;
@@ -1422,7 +1425,7 @@ function icms_core_logic_update_9050() {
   // Allow the paragraph wherever the other layouts are allowed.
   $enabled = [];
   foreach (array_keys(NodeType::loadMultiple()) as $type) {
-    $field = FieldConfig::loadByName('node', $type, 'field_icms_paragraphs');
+    $field = \Drupal::entityTypeManager()->getStorage('field_config')->loadOverrideFree("node.$type.field_icms_paragraphs");
     if (!$field) {
       continue;
     }
@@ -1693,7 +1696,7 @@ function icms_core_logic_update_9051() {
 
   $enabled = [];
   foreach (array_keys(NodeType::loadMultiple()) as $type) {
-    $field = FieldConfig::loadByName('node', $type, 'field_icms_paragraphs');
+    $field = \Drupal::entityTypeManager()->getStorage('field_config')->loadOverrideFree("node.$type.field_icms_paragraphs");
     if (!$field) {
       continue;
     }
@@ -1766,7 +1769,7 @@ function icms_core_logic_update_9052() {
   // Allow promoting every top-level layout paragraph to the library.
   $promotable = [];
   /** @var \Drupal\paragraphs\Entity\ParagraphsType $type */
-  foreach (\Drupal::entityTypeManager()->getStorage('paragraphs_type')->loadMultiple() as $type) {
+  foreach (\Drupal::entityTypeManager()->getStorage('paragraphs_type')->loadMultipleOverrideFree() as $type) {
     if (!str_starts_with($type->id(), 'icms_layout_')) {
       continue;
     }
@@ -1784,7 +1787,7 @@ function icms_core_logic_update_9052() {
   $wrappers = ['blokkli_fragment' => -56, 'from_library' => -55];
   $enabled = [];
   foreach (array_keys(NodeType::loadMultiple()) as $node_type) {
-    $field = FieldConfig::loadByName('node', $node_type, 'field_icms_paragraphs');
+    $field = \Drupal::entityTypeManager()->getStorage('field_config')->loadOverrideFree("node.$node_type.field_icms_paragraphs");
     if (!$field) {
       continue;
     }
@@ -1817,7 +1820,8 @@ function icms_core_logic_update_9052() {
     if (\Drupal::service('icms_core_logic.update_config_installer')->importConfigEntity('language.content_settings.paragraphs_library_item.paragraphs_library_item')) {
       $messages[] = 'Created the library item language settings.';
     }
-    $config = ContentLanguageSettings::loadByEntityTypeBundle('paragraphs_library_item', 'paragraphs_library_item');
+    $config = \Drupal::entityTypeManager()->getStorage('language_content_settings')->loadOverrideFree('paragraphs_library_item.paragraphs_library_item')
+      ?? ContentLanguageSettings::loadByEntityTypeBundle('paragraphs_library_item', 'paragraphs_library_item');
     if (!$config->getThirdPartySetting('content_translation', 'enabled', FALSE)) {
       $config
         ->setThirdPartySetting('content_translation', 'enabled', TRUE)
@@ -1836,7 +1840,7 @@ function icms_core_logic_update_9052() {
   ];
   $granted = [];
   foreach (['content_editor', 'administrator_client'] as $role_id) {
-    $role = Role::load($role_id);
+    $role = \Drupal::entityTypeManager()->getStorage('user_role')->loadOverrideFree($role_id);
     if (!$role) {
       continue;
     }
@@ -1877,7 +1881,7 @@ function icms_core_logic_update_9053() {
     return (string) new TranslatableMarkup('Skipped: blokkli_starterkit is not installed.');
   }
 
-  $view = \Drupal::entityTypeManager()->getStorage('view')->load('content');
+  $view = \Drupal::entityTypeManager()->getStorage('view')->loadOverrideFree('content');
   if (!$view) {
     return (string) new TranslatableMarkup('Skipped: the content view does not exist.');
   }
@@ -2063,8 +2067,9 @@ function _icms_core_logic_enable_original_language_selection(string $entity_type
     return [(string) new TranslatableMarkup('Skipped @label: the language module is not installed.', ['@label' => $label])];
   }
 
-  $settings = ContentLanguageSettings::loadByEntityTypeBundle($entity_type_id, $bundle);
-  if ($settings->isNew()) {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $settings = $entity_type_manager->getStorage('language_content_settings')->loadOverrideFree("$entity_type_id.$bundle");
+  if (!$settings) {
     return [(string) new TranslatableMarkup('Skipped @label: it has no content language settings.', ['@label' => $label])];
   }
   if (!$settings->isLanguageAlterable()) {
@@ -2072,7 +2077,7 @@ function _icms_core_logic_enable_original_language_selection(string $entity_type
     $messages[] = (string) new TranslatableMarkup('Enabled the language selector for @label.', ['@label' => $label]);
   }
 
-  $display = EntityFormDisplay::load("$entity_type_id.$bundle.default");
+  $display = $entity_type_manager->getStorage('entity_form_display')->loadOverrideFree("$entity_type_id.$bundle.default");
   if (!$display) {
     return $messages;
   }
@@ -2157,7 +2162,7 @@ function icms_core_logic_update_9058() {
 
   // Insert the canonical media URL instead of the file URL when an editor
   // picks a document in a linkit autocomplete.
-  foreach (\Drupal::entityTypeManager()->getStorage('linkit_profile')->loadMultiple() as $profile) {
+  foreach (\Drupal::entityTypeManager()->getStorage('linkit_profile')->loadMultipleOverrideFree() as $profile) {
     $changed = FALSE;
     foreach ($profile->getMatchers() as $matcher) {
       $configuration = $matcher->getConfiguration();
@@ -2176,7 +2181,7 @@ function icms_core_logic_update_9058() {
   // Links already stored in rich text need no migration: the Linkit filter
   // resolves the media entity on every render, so switching its substitution
   // updates published content without touching the stored markup.
-  foreach (\Drupal::entityTypeManager()->getStorage('filter_format')->loadMultiple() as $format) {
+  foreach (\Drupal::entityTypeManager()->getStorage('filter_format')->loadMultipleOverrideFree() as $format) {
     $filters = $format->get('filters');
     if (!isset($filters['linkit']) || ($filters['linkit']['settings']['media_substitution'] ?? '') === 'canonical') {
       continue;
@@ -2345,7 +2350,7 @@ function icms_core_logic_update_9066() {
   }
 
   $granted = [];
-  foreach (Role::loadMultiple() as $role) {
+  foreach (\Drupal::entityTypeManager()->getStorage('user_role')->loadMultipleOverrideFree() as $role) {
     if (!$role->isAdmin() && ($role->hasPermission('access toolbar') || $role->id() === 'administrator_client') && !$role->hasPermission('access navigation')) {
       $role->grantPermission('access navigation');
       $role->save();
