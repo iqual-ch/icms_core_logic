@@ -2410,3 +2410,88 @@ function icms_core_logic_update_9067() {
 
   return implode(' ', $log);
 }
+
+/**
+ * Switch paragraph reference fields to the Paragraphs widget (ICMS-857).
+ *
+ * ICMS-302 moved the nested paragraph fields from Inline Entity Form to the
+ * Paragraphs widget, but only in the starterkit: projects launched before it
+ * kept the old widgets, and so did the link list elements everywhere. Every
+ * form display component of a field referencing paragraphs gets the
+ * starterkit's Paragraphs widget settings. Weight, region, form mode and
+ * third-party settings are kept; the field's single paragraph type, or the
+ * labels the old widget overrode, become the widget titles.
+ */
+function icms_core_logic_update_9068() {
+  if (!\Drupal::moduleHandler()->moduleExists('paragraphs')) {
+    return (string) new TranslatableMarkup('Paragraphs is not installed; nothing to do.');
+  }
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+  /** @var \Drupal\Core\Entity\EntityFieldManagerInterface $field_manager */
+  $field_manager = \Drupal::service('entity_field.manager');
+  // Load the paragraph types without translations: their labels become
+  // widget settings in the base config (ICMS-839).
+  $paragraph_types = $entity_type_manager->getStorage('paragraphs_type')->loadMultipleOverrideFree();
+
+  $switched = [];
+  foreach ($entity_type_manager->getStorage('entity_form_display')->loadMultipleOverrideFree() as $form_display) {
+    $definitions = $field_manager->getFieldDefinitions($form_display->getTargetEntityTypeId(), $form_display->getTargetBundle());
+    $changed = FALSE;
+    foreach ($form_display->getComponents() as $name => $component) {
+      $definition = $definitions[$name] ?? NULL;
+      if (($component['type'] ?? NULL) === 'paragraphs'
+        || !$definition
+        || $definition->getType() !== 'entity_reference_revisions'
+        || $definition->getSetting('target_type') !== 'paragraph') {
+        continue;
+      }
+
+      $old = $component['settings'] ?? [];
+      $title = 'Paragraph';
+      $title_plural = 'Paragraphs';
+      $handler_settings = $definition->getSetting('handler_settings') ?? [];
+      $target_bundles = array_filter($handler_settings['target_bundles'] ?? []);
+      if (!empty($old['override_labels']) && !empty($old['label_singular']) && !empty($old['label_plural'])) {
+        $title = $old['label_singular'];
+        $title_plural = $old['label_plural'];
+      }
+      elseif (empty($handler_settings['negate']) && count($target_bundles) === 1 && isset($paragraph_types[reset($target_bundles)])) {
+        // Element types are sorted last with a "~" prefix in their label.
+        $title = $title_plural = ltrim((string) $paragraph_types[reset($target_bundles)]->label(), '~ ');
+      }
+
+      $form_display->setComponent($name, [
+        'type' => 'paragraphs',
+        'weight' => $component['weight'] ?? 0,
+        'region' => $component['region'] ?? 'content',
+        'settings' => [
+          'title' => $title,
+          'title_plural' => $title_plural,
+          'edit_mode' => 'open',
+          'closed_mode' => 'summary',
+          'autocollapse' => 'none',
+          'closed_mode_threshold' => 0,
+          'add_mode' => 'dropdown',
+          'form_display_mode' => $old['form_mode'] ?? $old['form_display_mode'] ?? 'default',
+          'default_paragraph_type' => '',
+          'features' => [
+            'collapse_edit_all' => 'collapse_edit_all',
+            'duplicate' => 'duplicate',
+          ],
+        ],
+        'third_party_settings' => $component['third_party_settings'] ?? [],
+      ]);
+      $changed = TRUE;
+      $switched[] = $form_display->id() . ':' . $name . ' (' . ($component['type'] ?? '?') . ')';
+    }
+    if ($changed) {
+      $form_display->save();
+    }
+  }
+
+  if (!$switched) {
+    return (string) new TranslatableMarkup('All paragraph reference fields already use the Paragraphs widget.');
+  }
+  return (string) new TranslatableMarkup('Switched to the Paragraphs widget: @fields.', ['@fields' => implode(', ', $switched)]);
+}
