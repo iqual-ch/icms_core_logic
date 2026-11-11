@@ -169,14 +169,14 @@ search_field_aria_label:
 search_field_label:
   context: search
   default:
-    en: Suchbegriff
-    de: Suchbegriff
+    en: 'Search term'
+    de: 'Suchbegriff'
     fr: 'Terme de recherche'
     it: 'Termine di ricerca'
 search_field_placeholder:
   context: search
   default:
-    en: 'Suchbegriff eingeben'
+    en: 'Enter search term'
     de: 'Suchbegriff eingeben'
     fr: 'Saisissez un terme de recherche'
     it: 'Inserisci un termine di ricerca'
