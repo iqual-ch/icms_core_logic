@@ -1,0 +1,9 @@
+# Texts whose key is already in texts.yml with another context (ICMS-864). A
+# texts file is keyed by text key, so it can hold each key only once.
+link_label:
+  context: teaser
+  default:
+    en: 'Read more'
+    de: 'Mehr lesen'
+    fr: 'En savoir plus'
+    it: 'Leggi di più'

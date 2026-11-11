@@ -18,7 +18,8 @@ use Symfony\Component\Yaml\Yaml;
  * reset every text editors had changed (ICMS-848), and aborted on a site with
  * a locked language, so the new texts were never created. A text the update
  * does not import is created by the first frontend request, in the site's
- * default language with the English fallback of the frontend (ICMS-862).
+ * default language with the English fallback of the frontend (ICMS-862). A
+ * key used in two contexts comes from a second texts file (ICMS-864).
  */
 #[Group('icms_core_logic')]
 #[RunTestsInSeparateProcesses]
@@ -103,19 +104,47 @@ class DefaultTextsUpdateTest extends EntityKernelTestBase {
     icms_core_logic_update_9069();
 
     $translator = $this->container->get('texts.translator');
-    $texts = Yaml::parseFile(dirname(__DIR__, 3) . '/texts/texts.yml');
-    foreach ($texts as $key => $text) {
-      foreach (['fr', 'de'] as $langcode) {
-        $translation = $translator->trans($key, [], [
-          'context' => $text['context'],
-          'default_translation' => $text['default']['en'],
-          'langcode' => $langcode,
-        ]);
-        $expected = $key === 'load_more' ? $changed[$langcode] : $text['default'][$langcode];
-        $this->assertSame($expected, $translation, "{$text['context']}.$key in $langcode.");
+    $files = glob(dirname(__DIR__, 3) . '/texts/*.yml');
+    $this->assertGreaterThan(1, count($files), 'The core ships more than one texts file.');
+    foreach ($files as $file) {
+      foreach (Yaml::parseFile($file) as $key => $text) {
+        foreach (['fr', 'de'] as $langcode) {
+          $translation = $translator->trans($key, [], [
+            'context' => $text['context'],
+            'default_translation' => $text['default']['en'],
+            'langcode' => $langcode,
+          ]);
+          $expected = "{$text['context']}.$key" === 'listing.load_more' ? $changed[$langcode] : $text['default'][$langcode];
+          $this->assertSame($expected, $translation, "{$text['context']}.$key in $langcode.");
+        }
       }
     }
     $this->assertSame('Navigation par ancres', $this->loadText('nav_aria_label', 'anchor_navigation')->getTranslation('fr')->getTranslationText());
+  }
+
+  /**
+   * A site that already has the core texts gets the teaser link label.
+   *
+   * Page teasers use teaser.link_label, which only the contenthub bundle
+   * shipped, so sites without it never had the text (ICMS-864). It shares its
+   * key with teaser_card.link_label and therefore comes from a second file.
+   */
+  public function testUpdateImportsTeaserLinkLabel(): void {
+    // The update message is translated into the default language.
+    $this->installSchema('locale', ['locales_source', 'locales_target', 'locales_location']);
+    $this->installConfig(['system', 'language']);
+    $this->addLanguages(['de', 'fr']);
+    $this->config('system.site')->set('default_langcode', 'de')->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->container = \Drupal::getContainer();
+    $this->createText('link_label', 'teaser_card', ['en' => 'Read more', 'de' => 'Weiterlesen']);
+
+    icms_core_logic_update_9070();
+
+    $teaser = $this->loadText('link_label', 'teaser');
+    $this->assertSame('Mehr lesen', $teaser->getTranslation('de')->getTranslationText());
+    $this->assertSame('En savoir plus', $teaser->getTranslation('fr')->getTranslationText());
+    $this->assertSame('Weiterlesen', $this->loadText('link_label', 'teaser_card')->getTranslation('de')->getTranslationText());
   }
 
   /**
