@@ -257,3 +257,17 @@ default_link_label:
     de: 'Mehr'
     fr: 'Plus'
     it: 'Di più'
+editor_empty:
+  context: anchor_navigation
+  default:
+    en: 'Add anchor blocks to fill this navigation'
+    de: 'Fügen Sie Anker-Blöcke hinzu, um diese Navigation zu füllen'
+    fr: 'Ajoutez des blocs d''ancre pour remplir cette navigation'
+    it: 'Aggiungi blocchi ancora per riempire questa navigazione'
+nav_aria_label:
+  context: anchor_navigation
+  default:
+    en: 'Anchor navigation'
+    de: 'Ankernavigation'
+    fr: 'Navigation par ancres'
+    it: 'Navigazione ad ancore'

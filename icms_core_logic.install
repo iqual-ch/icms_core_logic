@@ -2495,3 +2495,15 @@ function icms_core_logic_update_9068() {
   }
   return (string) new TranslatableMarkup('Switched to the Paragraphs widget: @fields.', ['@fields' => implode(', ', $switched)]);
 }
+
+/**
+ * Import the missing default texts, such as the anchor navigation's (ICMS-862).
+ *
+ * Without them the first frontend request creates each text in the site's
+ * default language with its English fallback.
+ */
+function icms_core_logic_update_9069() {
+  icms_core_logic_import_default_texts();
+
+  return (string) new TranslatableMarkup('Imported the missing default texts, such as the anchor navigation texts. Existing texts are unchanged.');
+}

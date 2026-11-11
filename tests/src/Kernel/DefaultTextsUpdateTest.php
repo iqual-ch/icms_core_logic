@@ -9,13 +9,16 @@ use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\texts\TextsInterface;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * The default texts import in update hooks keeps the project's texts.
  *
  * The update to 1.7 imported the whole texts file with override on, which
  * reset every text editors had changed (ICMS-848), and aborted on a site with
- * a locked language, so the new texts were never created.
+ * a locked language, so the new texts were never created. A text the update
+ * does not import is created by the first frontend request, in the site's
+ * default language with the English fallback of the frontend (ICMS-862).
  */
 #[Group('icms_core_logic')]
 #[RunTestsInSeparateProcesses]
@@ -77,6 +80,42 @@ class DefaultTextsUpdateTest extends EntityKernelTestBase {
     $this->assertSame('Der Spam-Schutz konnte diese Übermittlung nicht überprüfen. Bitte versuchen Sie es erneut.', $spam->getTranslation('de')->getTranslationText());
     $this->assertFalse($spam->hasTranslation('fr'));
     $this->assertFalse($spam->hasTranslation('it'));
+  }
+
+  /**
+   * After the update, the frontend finds every default text translated.
+   *
+   * The frontend requests each text with its English fallback, and the
+   * translator creates a missing one in the site's default language with that
+   * fallback. Texts the site already has keep their wording.
+   */
+  public function testFrontendRequestAfterUpdateFindsTranslatedTexts(): void {
+    // The update message is translated into the default language.
+    $this->installSchema('locale', ['locales_source', 'locales_target', 'locales_location']);
+    $this->installConfig(['system', 'language']);
+    $this->addLanguages(['de', 'fr', 'it']);
+    $this->config('system.site')->set('default_langcode', 'fr')->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->container = \Drupal::getContainer();
+    $changed = ['fr' => 'Voir plus', 'de' => 'Weitere laden'];
+    $this->createText('load_more', 'listing', $changed);
+
+    icms_core_logic_update_9069();
+
+    $translator = $this->container->get('texts.translator');
+    $texts = Yaml::parseFile(dirname(__DIR__, 3) . '/texts/texts.yml');
+    foreach ($texts as $key => $text) {
+      foreach (['fr', 'de'] as $langcode) {
+        $translation = $translator->trans($key, [], [
+          'context' => $text['context'],
+          'default_translation' => $text['default']['en'],
+          'langcode' => $langcode,
+        ]);
+        $expected = $key === 'load_more' ? $changed[$langcode] : $text['default'][$langcode];
+        $this->assertSame($expected, $translation, "{$text['context']}.$key in $langcode.");
+      }
+    }
+    $this->assertSame('Navigation par ancres', $this->loadText('nav_aria_label', 'anchor_navigation')->getTranslation('fr')->getTranslationText());
   }
 
   /**
