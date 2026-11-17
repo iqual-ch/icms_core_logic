@@ -126,7 +126,7 @@ function icms_core_logic_import_default_texts(): void {
 //
 // Example:
 // @code
-// function icms_core_logic_update_9001() {
+// function icms_core_logic_update_108001() {
 //   $config = \Drupal::configFactory()->getEditable('redirect.settings');
 //   if ($config->get('auto_redirect') !== TRUE) {
 //     $config->set('auto_redirect', TRUE);

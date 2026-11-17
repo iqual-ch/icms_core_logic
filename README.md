@@ -48,13 +48,14 @@ ddev drush en icms_project_translations
 Run before config import. Use for schema changes, complex migrations.
 
 ```php
-function icms_core_logic_update_9001() {
-  \Drupal::service('module_installer')->install(['new_module']);
+function icms_core_logic_update_108001() {
+  \Drupal::service('icms_core_logic.update_config_installer')->installModules(['new_module']);
   return new TranslatableMarkup('Enabled new_module.');
 }
 ```
 
-Start numbering from 9001.
+`N` is the ICMS version plus a sequence (`108001` is the first 1.8 hook); see the
+`icms-monorepo-logic-modules` skill.
 
 ## Deployment Workflow
 
@@ -73,4 +74,4 @@ Each bundle has a paired logic module (e.g., `icms_bundle_news_logic`) following
 
 ## Client Projects
 
-Client projects should create feature-specific modules (e.g., `clientname_sso`, `clientname_newsletter`) rather than a single `*_logic` module. Use update numbers below 9000 for client-specific hooks.
+Client projects should create feature-specific modules (e.g., `clientname_sso`, `clientname_newsletter`) rather than a single `*_logic` module.
